@@ -1,0 +1,20 @@
+# Ignore all Cargo build artifacts (any crate)
+**/target/
+
+# Lockfile (exclude for library crates)
+Cargo.lock
+
+# IDE / editor settings
+**/.idea/
+**/.vscode/
+
+# Temporary / log files
+*.log
+*.tmp
+
+# Environment files
+.env
+
+**/dist/
+
+**/bruno/

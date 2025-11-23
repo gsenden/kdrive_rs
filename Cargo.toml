@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "adapters",
+    "engine"
+]
+
+resolver = "2"
