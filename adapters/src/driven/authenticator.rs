@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use async_trait::async_trait;
 use axum::extract::Query;
 use axum::http::StatusCode;
 use axum::response::{Html, IntoResponse};
@@ -12,24 +13,25 @@ use tokio::task::JoinHandle;
 use tokio::time::Instant;
 use engine::domain::callback_endpoint::{CallbackEndpoint, ParseRedirectUrl};
 use engine::domain::errors::AuthFlowError;
+use engine::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 
-struct Authenticator {
+pub struct Authenticator {
     auth_url: AuthUrl,
     token_url: TokenUrl,
     client_id: ClientId,
     client_secret: ClientSecret,
     redirect_url: RedirectUrl,
     client: Client< BasicErrorResponse,
-                    BasicTokenResponse,
-                    BasicTokenIntrospectionResponse,
-                    StandardRevocableToken,
-                    BasicRevocationErrorResponse,
-                    EndpointSet,
-                    EndpointNotSet,
-                    EndpointNotSet,
-                    EndpointNotSet,
-                    EndpointSet,
-                    >,
+        BasicTokenResponse,
+        BasicTokenIntrospectionResponse,
+        StandardRevocableToken,
+        BasicRevocationErrorResponse,
+        EndpointSet,
+        EndpointNotSet,
+        EndpointNotSet,
+        EndpointNotSet,
+        EndpointSet,
+    >,
     pkce_verifier: Option<PkceCodeVerifier>,
     csrf_token: Option<CsrfToken>,
 
@@ -39,9 +41,9 @@ struct Authenticator {
     refresh_token: Option<RefreshToken>,
     access_token_expiry: Option<Instant>,
 }
-
-impl Authenticator {
-    pub fn new(auth_url: AuthUrl, token_url: TokenUrl, client_id: ClientId, client_secret: ClientSecret, redirect_url: RedirectUrl) -> Self {
+#[async_trait]
+impl AuthenticatorDrivenPort for Authenticator {
+    fn new(auth_url: AuthUrl, token_url: TokenUrl, client_id: ClientId, client_secret: ClientSecret, redirect_url: RedirectUrl) -> Self {
         let client = BasicClient::new(client_id.clone())
             .set_client_secret(client_secret.clone())
             .set_auth_uri(auth_url.clone())
@@ -55,7 +57,7 @@ impl Authenticator {
         }
     }
 
-    pub async fn start_initial_auth_flow(&mut self) -> Result<String, AuthFlowError> {
+    async fn start_initial_auth_flow(&mut self) -> Result<String, AuthFlowError> {
         let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
         let (auth_url, csrf_token) = self.client
             .authorize_url(CsrfToken::new_random)
@@ -80,13 +82,13 @@ impl Authenticator {
         Ok(auth_url.to_string())
     }
 
-    pub async fn continue_initial_auth_flow(&mut self) -> Result<bool, AuthFlowError> {
+    async fn continue_initial_auth_flow(&mut self) -> Result<bool, AuthFlowError> {
         let pkce_verifier = match self.pkce_verifier.take() {
             Some(v) => v,
             None => return Err(AuthFlowError::FlowNotStarted),
         };
 
-        let mut receiver = match self.code_rx.take() {
+        let receiver = match self.code_rx.take() {
             Some(rx) => rx,
             None => return Err(AuthFlowError::FlowNotStarted),
         };
@@ -122,6 +124,9 @@ impl Authenticator {
 
         Ok(true)
     }
+}
+
+impl Authenticator {
 
     pub async fn get_access_token(&mut self) -> Result<AccessToken, AuthFlowError> {
         if let (Some(token), Some(expiry)) =

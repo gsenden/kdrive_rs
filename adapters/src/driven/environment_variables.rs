@@ -70,7 +70,6 @@ impl EnvironmentVariablesFactoryPort for EnvironmentVariablesFactory {
 
 #[cfg(test)]
 mod tests {
-    use engine::domain::errors::ConfigurationError;
     use engine::ports::driven::environment_variables_port::{EnvironmentVariablesFactoryPort, EnvironmentVariablesPort};
     use crate::driven::environment_variables::{EnvironmentVariablesFactory};
     use crate::driven::environment_variables_defaults::*;
