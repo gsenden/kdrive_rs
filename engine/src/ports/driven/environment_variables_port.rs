@@ -7,11 +7,13 @@ pub trait EnvironmentVariablesPort {
     fn client_id(&self) -> &ClientId;
     fn client_secret(&self) -> &ClientSecret;
     fn redirect_url(&self) -> &RedirectUrl;
+    fn defaults_overwritten_by_env(&self) -> bool;
 }
 
 pub trait EnvironmentVariablesFactoryPort {
     type Port: EnvironmentVariablesPort;
-    fn load(&self, env_file_option: Option<&str>) -> Result<Self::Port, ConfigurationError>
+
+    fn load(&self) -> Result<Self::Port, ConfigurationError>
     where
         Self: Sized;
 }

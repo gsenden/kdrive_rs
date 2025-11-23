@@ -12,7 +12,6 @@ use tokio::task::JoinHandle;
 use tokio::time::Instant;
 use engine::domain::callback_endpoint::{CallbackEndpoint, ParseRedirectUrl};
 use engine::domain::errors::AuthFlowError;
-use crate::driven::kdrive::KDrive;
 
 struct Authenticator {
     auth_url: AuthUrl,
