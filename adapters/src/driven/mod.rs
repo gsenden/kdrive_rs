@@ -1,3 +1,3 @@
-mod authenticator;
+mod kdrive_authenticator_adapter;
 mod build_time_env_var_configurator_adapter;
 

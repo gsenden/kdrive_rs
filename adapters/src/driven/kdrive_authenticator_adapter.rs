@@ -15,7 +15,7 @@ use engine::domain::callback_endpoint::{CallbackEndpoint, ParseRedirectUrl};
 use engine::domain::errors::AuthFlowError;
 use engine::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 
-pub struct Authenticator {
+pub struct KDriveAuthenticator {
     auth_url: AuthUrl,
     token_url: TokenUrl,
     client_id: ClientId,
@@ -42,7 +42,7 @@ pub struct Authenticator {
     access_token_expiry: Option<Instant>,
 }
 #[async_trait]
-impl AuthenticatorDrivenPort for Authenticator {
+impl AuthenticatorDrivenPort for KDriveAuthenticator {
     fn new(auth_url: AuthUrl, token_url: TokenUrl, client_id: ClientId, client_secret: ClientSecret, redirect_url: RedirectUrl) -> Self {
         let client = BasicClient::new(client_id.clone())
             .set_client_secret(client_secret.clone())
@@ -126,7 +126,7 @@ impl AuthenticatorDrivenPort for Authenticator {
     }
 }
 
-impl Authenticator {
+impl KDriveAuthenticator {
 
     pub async fn get_access_token(&mut self) -> Result<AccessToken, AuthFlowError> {
         if let (Some(token), Some(expiry)) =
@@ -175,7 +175,7 @@ impl Authenticator {
             get(move |Query(params): Query<HashMap<String, String>>| {
                 async move {
                     let (status, html, result) =
-                        Authenticator::handle_oauth_params(&params);
+                        KDriveAuthenticator::handle_oauth_params(&params);
 
                     if let Ok(mut guard) = sender.lock() {
                         if let Some(sender) = guard.take() {
