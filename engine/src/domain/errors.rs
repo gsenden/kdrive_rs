@@ -44,6 +44,37 @@ pub enum ConfigurationError {
 
     #[error("At least one store port needs to be set")]
     MissingStorePort,
+
+    #[error("Could not find config folder")]
+    NoConfigFolderFound,
+
+    #[error("Could not create folder: {0}")]
+    CouldNotCreateFolder(String),
+
+    #[error("Could not read tokens from file: {0}")]
+    CouldNotReadTokensFromFile(String),
+
+    #[error("Could not parse json: {0}")]
+    CouldNotParseJson(String),
+
+    #[error("Could not serialize tokens: {0}")]
+    CouldNotSerializeTokens(String),
+
+    #[error("Could not open token file: {0}")]
+    CouldNotOpenTokenFile(String),
+
+    #[error("Could not save token file: {0}")]
+    CouldNotSaveTokenFile(String),
+
+    #[error("Could not read tokens from keyring: {0}")]
+    CouldNotReadTokensFromKeyring(String),
+
+    #[error("Could not save tokens to keyring: {0}")]
+    CouldNotSaveTokensToKeyring(String),
+
+    #[error("Could not access keyring: {0}")]
+    CouldNotAccessKeyring(String),
+
 }
 
 impl From<url::ParseError> for ConfigurationError {
