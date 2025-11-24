@@ -41,6 +41,9 @@ pub enum ConfigurationError {
 
     #[error("Environment variable CLIENT_SECRET needs to be set during build time")]
     MissingClientSecretEnvVarDuringBuild,
+
+    #[error("At least one store port needs to be set")]
+    MissingStorePort,
 }
 
 impl From<url::ParseError> for ConfigurationError {

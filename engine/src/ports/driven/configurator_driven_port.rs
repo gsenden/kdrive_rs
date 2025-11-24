@@ -1,11 +1,10 @@
 use crate::domain::errors::ConfigurationError;
-use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
+use oauth2::{AuthUrl, ClientId, RedirectUrl, TokenUrl};
 
 pub trait ConfiguratorPort {
     fn auth_url(&self) -> &AuthUrl;
     fn token_url(&self) -> &TokenUrl;
     fn client_id(&self) -> &ClientId;
-    fn client_secret(&self) -> &ClientSecret;
     fn redirect_url(&self) -> &RedirectUrl;
 }
 

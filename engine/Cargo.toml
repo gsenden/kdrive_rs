@@ -10,6 +10,7 @@ axum = "0.8.6"
 tokio = "1.48.0"
 thiserror = "2.0.17"
 async-trait = "0.1.89"
+serde = { version = "1.0.228", features = ["derive"] }
 
 [lib]
 doctest = false

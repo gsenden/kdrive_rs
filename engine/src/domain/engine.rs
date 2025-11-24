@@ -2,26 +2,26 @@ use crate::domain::errors::AuthFlowError;
 use crate::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 use crate::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
 
-pub struct Authenticator<AP: AuthenticatorDrivenPort> {
-    authenticator_port: AP,
+pub struct Engine<AP: AuthenticatorDrivenPort> {
+    authenticator_driven_port: AP,
     is_connected: bool,
 }
 
-impl <AP: AuthenticatorDrivenPort> Authenticator<AP> {
+impl <AP: AuthenticatorDrivenPort> Engine<AP> {
     pub fn new(authenticator_port: AP) -> Self {
-        Authenticator { authenticator_port, is_connected: false }
+        Engine { authenticator_driven_port: authenticator_port, is_connected: false }
     }
 
     pub async fn start_initial_auth_flow(&mut self) -> Result<String, AuthFlowError> {
-        self.authenticator_port.start_initial_auth_flow().await
+        self.authenticator_driven_port.start_initial_auth_flow().await
     }
 
     pub async fn continue_initial_auth_flow(&mut self) -> Result<bool, AuthFlowError> {
-        self.authenticator_port.continue_initial_auth_flow().await
+        self.authenticator_driven_port.continue_initial_auth_flow().await
     }
 }
 
-impl<AP: AuthenticatorDrivenPort> AuthenticatorDrivingPort for Authenticator<AP> {
+impl<AP: AuthenticatorDrivenPort> AuthenticatorDrivingPort for Engine<AP> {
     fn is_connected(&self) -> bool {
         self.is_connected
     }
@@ -29,17 +29,17 @@ impl<AP: AuthenticatorDrivenPort> AuthenticatorDrivingPort for Authenticator<AP>
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::authenticator::Authenticator;
+    use crate::domain::engine::Engine;
     use crate::domain::test_helpers::fake_authenticator_adapter::FakeAuthenticatorDrivenAdapter;
     use crate::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
 
     #[test]
-    fn when_authenticator_is_created_without_previous_connection_it_is_not_connected() {
+    fn when_engine_is_created_without_previous_connection_it_is_not_connected() {
         // Given a new authenticator-driven adapter
         let adapter = FakeAuthenticatorDrivenAdapter::new_default();
 
         // When the authenticator is created
-        let authenticator = Authenticator::new(adapter);
+        let authenticator = Engine::new(adapter);
 
         // Then the authenticator is not connected
         assert_eq!(authenticator.is_connected(), false);

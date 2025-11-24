@@ -1,5 +1,5 @@
-use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
-use crate::domain::configurator_defaults::{DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET};
+use oauth2::{AuthUrl, ClientId, RedirectUrl, TokenUrl};
+use crate::domain::default_values::configurator_defaults::{DEFAULT_CLIENT_ID};
 use crate::domain::errors::ConfigurationError;
 use crate::ports::driven::configurator_driven_port::ConfiguratorPort;
 
@@ -29,17 +29,7 @@ impl <CP: ConfiguratorPort>Configurator<CP> {
             Ok(client_id)
         }
     }
-
-    fn client_secret(&self) -> Result<&ClientSecret, ConfigurationError> {
-        let client_secret = self.configurator_port.client_secret();
-        if client_secret.secret().as_str() == DEFAULT_CLIENT_SECRET {
-            Err(ConfigurationError::MissingClientSecretEnvVarDuringBuild)
-        }
-        else {
-            Ok(client_secret)
-        }
-    }
-
+    
     fn redirect_url(&self) -> &RedirectUrl {
         &self.configurator_port.redirect_url()
     }
@@ -49,7 +39,7 @@ impl <CP: ConfiguratorPort>Configurator<CP> {
 mod tests {
     use crate::domain::test_helpers::fake_configurator_adapter::FakeConfiguratorDrivenAdapter;
     use crate::domain::configurator::Configurator;
-    use crate::domain::configurator_defaults::*;
+    use crate::domain::default_values::configurator_defaults::*;
     use crate::domain::errors::ConfigurationError;
 
 
@@ -91,21 +81,10 @@ mod tests {
         // When a configurator is created that uses the adapter
         let configurator = Configurator::new(adapter);
 
-        // Then a error is returned when getting the client id
+        // Then an error is returned when getting the client id
         assert_eq!(configurator.client_id(), Err(ConfigurationError::MissingClientIDEnvVarDuringBuild));
     }
 
-    #[test]
-    fn when_not_setting_the_client_secret_during_build_an_error_is_returned() {
-        // Given a configurator adapter implemented using de default values
-        let adapter = FakeConfiguratorDrivenAdapter::new();
-
-        // When a configurator is created that uses the adapter
-        let configurator = Configurator::new(adapter);
-
-        // Then an error is returned when getting the client id
-        assert!(configurator.client_secret().is_err());
-    }
 
     #[test]
     fn the_configurator_can_return_the_redirect_url() {
