@@ -25,33 +25,39 @@ impl <TRP: TokenStoreDrivenPort, TFP: TokenStoreDrivenPort>TokenStore<TRP, TFP> 
 
 impl <TRP: TokenStoreDrivenPort, TFP: TokenStoreDrivenPort>TokenStore<TRP, TFP> {
 
-    fn access_token(&self) -> String {
+    fn with_store<R>(
+        &self,
+        f_ring: impl FnOnce(&TRP) -> R,
+        f_file: impl FnOnce(&TFP) -> R,
+    ) -> R {
         match (&self.key_ring_store, &self.file_store) {
-            (Some(ring), _) => ring.access_token(),
-            (None, Some(file)) => file.access_token(),
-            (None, None) => unreachable!(
-                "Both ports are None; constructor should have prevented this."
-            ),
-        }
-    }
-    fn refresh_token(&self) -> String {
-        match (&self.key_ring_store, &self.file_store) {
-            (Some(ring), _) => ring.refresh_token(),
-            (None, Some(file)) => file.refresh_token(),
+            (Some(ring), _) => f_ring(ring),
+            (None, Some(file)) => f_file(file),
             (None, None) => unreachable!(
                 "Both ports are None; constructor should have prevented this."
             ),
         }
     }
 
+    fn access_token(&self) -> String {
+        self.with_store(
+            |ring| ring.access_token(),
+            |file| file.access_token(),
+        )
+    }
+
+    fn refresh_token(&self) -> String {
+        self.with_store(
+            |ring| ring.refresh_token(),
+            |file| file.refresh_token(),
+        )
+    }
+
     fn expires_at(&self) -> i64 {
-        match (&self.key_ring_store, &self.file_store) {
-            (Some(ring), _) => ring.expires_at(),
-            (None, Some(file)) => file.expires_at(),
-            (None, None) => unreachable!(
-                "Both ports are None; constructor should have prevented this."
-            ),
-        }
+        self.with_store(
+            |ring| ring.expires_at(),
+            |file| file.expires_at(),
+        )
     }
 }
 
@@ -62,184 +68,98 @@ mod tests {
     use crate::domain::token_store::TokenStore;
     use crate::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
 
+    type TestStore = TokenStore<FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter>;
+
+    fn file_only_store() -> TestStore {
+        let file_store_adapter = FakeTokenStoreFileAdapter::load().unwrap();
+        TestStore::new(None, Some(file_store_adapter)).unwrap()
+    }
+
+    fn ring_only_store() -> TestStore {
+        let ring_store_adapter = FakeTokenStoreRingAdapter::load().unwrap();
+        TestStore::new(Some(ring_store_adapter), None).unwrap()
+    }
+
+    fn both_store() -> TestStore {
+        let ring_store_adapter = FakeTokenStoreRingAdapter::load().unwrap();
+        let file_store_adapter = FakeTokenStoreFileAdapter::load().unwrap();
+        TestStore::new(Some(ring_store_adapter), Some(file_store_adapter)).unwrap()
+    }
+
     #[test]
     fn when_creating_a_new_store_at_least_one_port_should_be_some() {
-        // Given a fake token store adapter
         let file_store_adapter = FakeTokenStoreFileAdapter::load().unwrap();
 
-        // When creating a new token store
-        let store =
-            TokenStore::<FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter>
-            ::new(None, Some(file_store_adapter)).unwrap();
+        let store_result = TestStore::new(None, Some(file_store_adapter));
 
-        // Then no error should be raised
-        assert!(store.file_store.is_some());
+        assert!(store_result.is_ok());
     }
 
     #[test]
     fn when_creating_a_new_store_with_both_ports_none_should_return_an_error() {
-        // When creating a new token store
-        let store_result =
-            TokenStore::<FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter>
-            ::new(None, None);
+        let store_result = TestStore::new(None, None);
 
-        // Then the correct error should be returned
-        assert_eq!(store_result.unwrap_err(), ConfigurationError::MissingStorePort);
+        assert_eq!(
+            store_result.unwrap_err(),
+            ConfigurationError::MissingStorePort
+        );
     }
 
+    // access_token
     #[test]
     fn when_the_store_has_only_a_file_port_the_correct_access_token_should_be_returned() {
-        // Given a fake file store adapter
-        let file_store_adapter = FakeTokenStoreFileAdapter::load().unwrap();
-
-        // And a token store with only the file store adapter
-        let store =
-            TokenStore::<FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter>
-            ::new(None, Some(file_store_adapter)).unwrap();
-
-        // When getting the access token
-        let access_token = store.access_token();
-
-        // Then the correct access token should be returned
-        assert_eq!(access_token, TEST_FILE_ACCESS_TOKEN);
+        let store = file_only_store();
+        assert_eq!(store.access_token(), TEST_FILE_ACCESS_TOKEN);
     }
 
     #[test]
     fn when_the_store_has_only_a_ring_port_the_correct_access_token_should_be_returned() {
-        // Given a fake file store adapter
-        let ring_store_adapter = FakeTokenStoreRingAdapter::load().unwrap();
-
-        // And a token store with only the file store adapter
-        let store =
-            TokenStore::<FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter>
-            ::new(Some(ring_store_adapter), None).unwrap();
-
-        // When getting the access token
-        let access_token = store.access_token();
-
-        // Then the correct access token should be returned
-        assert_eq!(access_token, TEST_RING_ACCESS_TOKEN);
+        let store = ring_only_store();
+        assert_eq!(store.access_token(), TEST_RING_ACCESS_TOKEN);
     }
 
     #[test]
     fn when_the_store_has_both_ports_the_correct_access_token_should_be_returned() {
-        // Given the fake store adapters
-        let ring_store_adapter = FakeTokenStoreRingAdapter::load().unwrap();
-        let file_store_adapter = FakeTokenStoreFileAdapter::load().unwrap();
-
-        // And a token store with both store adapters
-        let store =
-            TokenStore::<FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter>
-            ::new(Some(ring_store_adapter), Some(file_store_adapter)).unwrap();
-
-        // When getting the access token
-        let access_token = store.access_token();
-
-        // Then the correct access token should be returned
-        assert_eq!(access_token, TEST_RING_ACCESS_TOKEN);
+        let store = both_store();
+        assert_eq!(store.access_token(), TEST_RING_ACCESS_TOKEN);
     }
 
+    // refresh_token
     #[test]
     fn when_the_store_has_only_a_file_port_the_correct_refresh_token_should_be_returned() {
-        // Given a fake file store adapter
-        let file_store_adapter = FakeTokenStoreFileAdapter::load().unwrap();
-
-        // And a token store with only the file store adapter
-        let store =
-            TokenStore::<FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter>
-            ::new(None, Some(file_store_adapter)).unwrap();
-
-        // When getting the access token
-        let refresh_token = store.refresh_token();
-
-        // Then the correct access token should be returned
-        assert_eq!(refresh_token, TEST_FILE_REFRESH_TOKEN);
+        let store = file_only_store();
+        assert_eq!(store.refresh_token(), TEST_FILE_REFRESH_TOKEN);
     }
 
     #[test]
     fn when_the_store_has_only_a_ring_port_the_correct_refresh_token_should_be_returned() {
-        // Given a fake file store adapter
-        let ring_store_adapter = FakeTokenStoreRingAdapter::load().unwrap();
-
-        // And a token store with only the file store adapter
-        let store =
-            TokenStore::<FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter>
-            ::new(Some(ring_store_adapter), None).unwrap();
-
-        // When getting the access token
-        let refresh_token = store.refresh_token();
-
-        // Then the correct access token should be returned
-        assert_eq!(refresh_token, TEST_RING_REFRESH_TOKEN);
+        let store = ring_only_store();
+        assert_eq!(store.refresh_token(), TEST_RING_REFRESH_TOKEN);
     }
 
     #[test]
     fn when_the_store_has_both_ports_the_correct_refresh_token_should_be_returned() {
-        // Given the fake store adapters
-        let ring_store_adapter = FakeTokenStoreRingAdapter::load().unwrap();
-        let file_store_adapter = FakeTokenStoreFileAdapter::load().unwrap();
-
-        // And a token store with both store adapters
-        let store =
-            TokenStore::<FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter>
-            ::new(Some(ring_store_adapter), Some(file_store_adapter)).unwrap();
-
-        // When getting the access token
-        let refresh_token = store.refresh_token();
-
-        // Then the correct access token should be returned
-        assert_eq!(refresh_token, TEST_RING_REFRESH_TOKEN);
+        let store = both_store();
+        assert_eq!(store.refresh_token(), TEST_RING_REFRESH_TOKEN);
     }
+
+    // expires_at
 
     #[test]
     fn when_the_store_has_only_a_file_port_the_correct_expires_at_should_be_returned() {
-        // Given a fake file store adapter
-        let file_store_adapter = FakeTokenStoreFileAdapter::load().unwrap();
-
-        // And a token store with only the file store adapter
-        let store =
-            TokenStore::<FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter>
-            ::new(None, Some(file_store_adapter)).unwrap();
-
-        // When getting the access token
-        let expires_at = store.expires_at();
-
-        // Then the correct access token should be returned
-        assert_eq!(expires_at, TEST_FILE_EXPIRES_AT);
+        let store = file_only_store();
+        assert_eq!(store.expires_at(), TEST_FILE_EXPIRES_AT);
     }
 
     #[test]
     fn when_the_store_has_only_a_ring_port_the_correct_expires_at_should_be_returned() {
-        // Given a fake file store adapter
-        let ring_store_adapter = FakeTokenStoreRingAdapter::load().unwrap();
-
-        // And a token store with only the file store adapter
-        let store =
-            TokenStore::<FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter>
-            ::new(Some(ring_store_adapter), None).unwrap();
-
-        // When getting the access token
-        let expires_at = store.expires_at();
-
-        // Then the correct access token should be returned
-        assert_eq!(expires_at, TEST_RING_EXPIRES_AT);
+        let store = ring_only_store();
+        assert_eq!(store.expires_at(), TEST_RING_EXPIRES_AT);
     }
 
     #[test]
     fn when_the_store_has_both_ports_the_correct_expires_at_should_be_returned() {
-        // Given the fake store adapters
-        let ring_store_adapter = FakeTokenStoreRingAdapter::load().unwrap();
-        let file_store_adapter = FakeTokenStoreFileAdapter::load().unwrap();
-
-        // And a token store with both store adapters
-        let store =
-            TokenStore::<FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter>
-            ::new(Some(ring_store_adapter), Some(file_store_adapter)).unwrap();
-
-        // When getting the access token
-        let expires_at = store.expires_at();
-
-        // Then the correct access token should be returned
-        assert_eq!(expires_at, TEST_RING_EXPIRES_AT);
+        let store = both_store();
+        assert_eq!(store.expires_at(), TEST_RING_EXPIRES_AT);
     }
 }
