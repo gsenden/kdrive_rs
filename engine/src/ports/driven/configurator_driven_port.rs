@@ -1,17 +1,16 @@
 use crate::domain::errors::ConfigurationError;
 use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
 
-pub trait EnvironmentVariablesPort {
+pub trait ConfiguratorPort {
     fn auth_url(&self) -> &AuthUrl;
     fn token_url(&self) -> &TokenUrl;
     fn client_id(&self) -> &ClientId;
     fn client_secret(&self) -> &ClientSecret;
     fn redirect_url(&self) -> &RedirectUrl;
-    fn defaults_overwritten_by_env(&self) -> bool;
 }
 
-pub trait EnvironmentVariablesFactoryPort {
-    type Port: EnvironmentVariablesPort;
+pub trait ConfiguratorFactoryPort {
+    type Port: ConfiguratorPort;
 
     fn load(&self) -> Result<Self::Port, ConfigurationError>
     where

@@ -1,10 +1,10 @@
 use engine::domain::errors::ConfigurationError;
 use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
-use engine::ports::driven::environment_variables_port::{EnvironmentVariablesFactoryPort, EnvironmentVariablesPort};
-use crate::driven::environment_variables_defaults::*;
+use engine::ports::driven::configurator_driven_port::{ConfiguratorFactoryPort, ConfiguratorPort};
+use engine::domain::configurator_defaults::*;
 
 #[derive(Debug)]
-pub struct EnvironmentVariables {
+pub struct BuildTimeEnvVarConfigurator {
     auth_url: AuthUrl,
     token_url: TokenUrl,
     client_id: ClientId,
@@ -12,7 +12,7 @@ pub struct EnvironmentVariables {
     redirect_url: RedirectUrl,
 }
 
-impl EnvironmentVariablesPort for EnvironmentVariables {
+impl ConfiguratorPort for BuildTimeEnvVarConfigurator {
     fn auth_url(&self) -> &AuthUrl {
         &self.auth_url
     }
@@ -32,21 +32,11 @@ impl EnvironmentVariablesPort for EnvironmentVariables {
     fn redirect_url(&self) -> &RedirectUrl {
         &self.redirect_url
     }
-
-    fn defaults_overwritten_by_env(&self) -> bool {
-        vec![   self.auth_url.as_str() == DEFAULT_AUTH_URL,
-                self.token_url.as_str() == DEFAULT_TOKEN_URL,
-                self.client_id.as_str() == DEFAULT_CLIENT_ID,
-                self.client_secret.secret() == DEFAULT_CLIENT_SECRET,
-                self.redirect_url.as_str() == DEFAULT_REDIRECT_URL ]
-            .iter()
-            .any(|result| *result != true)
-    }
 }
 
-pub struct EnvironmentVariablesFactory;
-impl EnvironmentVariablesFactoryPort for EnvironmentVariablesFactory {
-    type Port = EnvironmentVariables;
+pub struct BuildTimeEnvVarConfiguratorFactory;
+impl ConfiguratorFactoryPort for BuildTimeEnvVarConfiguratorFactory {
+    type Port = BuildTimeEnvVarConfigurator;
 
     fn load(&self) -> Result<Self::Port, ConfigurationError>
     where
@@ -58,7 +48,7 @@ impl EnvironmentVariablesFactoryPort for EnvironmentVariablesFactory {
         let client_secret = option_env!("CLIENT_SECRET").unwrap_or(DEFAULT_CLIENT_SECRET).to_string();
         let redirect_url = option_env!("REDIRECT_URL").unwrap_or(DEFAULT_REDIRECT_URL).to_string();
 
-        Ok(EnvironmentVariables {
+        Ok(BuildTimeEnvVarConfigurator {
             auth_url: AuthUrl::new(auth_url)?,
             token_url: TokenUrl::new(token_url)?,
             client_id: ClientId::new(client_id),
@@ -70,14 +60,14 @@ impl EnvironmentVariablesFactoryPort for EnvironmentVariablesFactory {
 
 #[cfg(test)]
 mod tests {
-    use engine::ports::driven::environment_variables_port::{EnvironmentVariablesFactoryPort, EnvironmentVariablesPort};
-    use crate::driven::environment_variables::{EnvironmentVariablesFactory};
-    use crate::driven::environment_variables_defaults::*;
+    use engine::ports::driven::configurator_driven_port::{ConfiguratorFactoryPort, ConfiguratorPort};
+    use crate::driven::build_time_env_var_configurator_adapter::*;
+    use engine::domain::configurator_defaults::*;
 
     #[test]
     fn client_id_from_env() {
         // When the environment variables are loaded
-        let factory = EnvironmentVariablesFactory;
+        let factory = BuildTimeEnvVarConfiguratorFactory;
         let environment_variables = factory.load().unwrap();
 
         // Then the client id is loaded from the env file
@@ -87,7 +77,7 @@ mod tests {
     #[test]
     fn client_secret_from_env() {
         // When the environment variables are loaded
-        let factory = EnvironmentVariablesFactory;
+        let factory = BuildTimeEnvVarConfiguratorFactory;
         let environment_variables = factory.load().unwrap();
 
         // Then the client secret is loaded from the env file
@@ -97,7 +87,7 @@ mod tests {
     #[test]
     fn token_url_from_env() {
         // When the environment variables are loaded
-        let factory = EnvironmentVariablesFactory;
+        let factory = BuildTimeEnvVarConfiguratorFactory;
         let environment_variables = factory.load().unwrap();
 
         // Then the token url loaded from the env file
@@ -107,20 +97,11 @@ mod tests {
     #[test]
     fn redirect_url_from_env() {
         // When the environment variables are loaded
-        let factory = EnvironmentVariablesFactory;
+        let factory = BuildTimeEnvVarConfiguratorFactory;
         let environment_variables = factory.load().unwrap();
 
         // Then the token url loaded from the env file
         assert_eq!(environment_variables.redirect_url().as_str(), DEFAULT_REDIRECT_URL);
     }
 
-    #[test]
-    fn in_test_no_defaults_overwritten() {
-        // When the environment variables are loaded
-        let factory = EnvironmentVariablesFactory;
-        let environment_variables = factory.load().unwrap();
-
-        // Then a valid auth flow is returned
-        assert_eq!(environment_variables.defaults_overwritten_by_env(), false);
-    }
 }

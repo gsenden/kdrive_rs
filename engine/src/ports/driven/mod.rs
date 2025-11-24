@@ -1,2 +1,2 @@
-pub mod environment_variables_port;
+pub mod configurator_driven_port;
 pub mod authenticator_driven_port;

@@ -35,6 +35,12 @@ pub enum ConfigurationError {
 
     #[error("Missing redirect URL environment variable")]
     MissingRedirectUrlEnvVar,
+    
+    #[error("Environment variable CLIENT_ID needs to be set during build time")]
+    MissingClientIDEnvVarDuringBuild,
+
+    #[error("Environment variable CLIENT_SECRET needs to be set during build time")]
+    MissingClientSecretEnvVarDuringBuild,
 }
 
 impl From<url::ParseError> for ConfigurationError {

@@ -1,4 +1,3 @@
 mod authenticator;
-mod environment_variables;
-mod environment_variables_defaults;
+mod build_time_env_var_configurator_adapter;
 
