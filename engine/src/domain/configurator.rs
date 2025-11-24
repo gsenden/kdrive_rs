@@ -47,57 +47,16 @@ impl <CP: ConfiguratorPort>Configurator<CP> {
 
 #[cfg(test)]
 mod tests {
-    use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
+    use crate::domain::test_helpers::fake_configurator_adapter::FakeConfiguratorDrivenAdapter;
     use crate::domain::configurator::Configurator;
-    use crate::domain::configurator_defaults::{DEFAULT_AUTH_URL, DEFAULT_CLIENT_ID, DEFAULT_CLIENT_SECRET, DEFAULT_REDIRECT_URL, DEFAULT_TOKEN_URL};
+    use crate::domain::configurator_defaults::*;
     use crate::domain::errors::ConfigurationError;
-    use crate::ports::driven::configurator_driven_port::ConfiguratorPort;
 
-    struct FakeConfigurator {
-        client_id: ClientId,
-        client_secret: ClientSecret,
-        redirect_url: RedirectUrl,
-        auth_url: AuthUrl,
-        token_url: TokenUrl
-    }
-    impl FakeConfigurator {
-        pub fn new() -> Self {
-            FakeConfigurator {
-                auth_url: AuthUrl::new(DEFAULT_AUTH_URL.to_string()).unwrap(),
-                token_url: TokenUrl::new(DEFAULT_TOKEN_URL.to_string()).unwrap(),
-                client_id: ClientId::new(DEFAULT_CLIENT_ID.to_string()),
-                client_secret: ClientSecret::new(DEFAULT_CLIENT_SECRET.to_string()),
-                redirect_url: RedirectUrl::new(DEFAULT_REDIRECT_URL.to_string()).unwrap()
-            }
-        }
-    }
-    impl ConfiguratorPort for FakeConfigurator {
-
-        fn auth_url(&self) -> &oauth2::AuthUrl {
-            &self.auth_url
-        }
-
-        fn token_url(&self) -> &oauth2::TokenUrl {
-            &self.token_url
-        }
-
-        fn client_id(&self) -> &oauth2::ClientId {
-            &self.client_id
-        }
-
-        fn client_secret(&self) -> &ClientSecret {
-            &self.client_secret
-        }
-
-        fn redirect_url(&self) -> &RedirectUrl {
-            &self.redirect_url
-        }
-    }
 
     #[test]
     fn the_configurator_can_return_the_auth_url() {
         // Given a configurator adapter implemented using de default values
-        let adapter = FakeConfigurator::new();
+        let adapter = FakeConfiguratorDrivenAdapter::new();
 
         // And a configurator is created that uses the adapter
         let configurator = Configurator::new(adapter);
@@ -112,7 +71,7 @@ mod tests {
     #[test]
     fn the_configurator_can_return_the_token_url() {
         // Given a configurator adapter implemented using de default values
-        let adapter = FakeConfigurator::new();
+        let adapter = FakeConfiguratorDrivenAdapter::new();
 
         // And a configurator is created that uses the adapter
         let configurator = Configurator::new(adapter);
@@ -127,7 +86,7 @@ mod tests {
     #[test]
     fn when_not_setting_the_client_id_during_build_an_error_is_returned() {
         // Given a configurator adapter implemented using de default values
-        let adapter = FakeConfigurator::new();
+        let adapter = FakeConfiguratorDrivenAdapter::new();
 
         // When a configurator is created that uses the adapter
         let configurator = Configurator::new(adapter);
@@ -139,19 +98,19 @@ mod tests {
     #[test]
     fn when_not_setting_the_client_secret_during_build_an_error_is_returned() {
         // Given a configurator adapter implemented using de default values
-        let adapter = FakeConfigurator::new();
+        let adapter = FakeConfiguratorDrivenAdapter::new();
 
         // When a configurator is created that uses the adapter
         let configurator = Configurator::new(adapter);
 
-        // Then a error is returned when getting the client id
+        // Then an error is returned when getting the client id
         assert!(configurator.client_secret().is_err());
     }
 
     #[test]
     fn the_configurator_can_return_the_redirect_url() {
         // Given a configurator adapter implemented using de default values
-        let adapter = FakeConfigurator::new();
+        let adapter = FakeConfiguratorDrivenAdapter::new();
 
         // And a configurator is created that uses the adapter
         let configurator = Configurator::new(adapter);
