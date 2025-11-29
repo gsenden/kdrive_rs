@@ -1,39 +1,35 @@
-use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenUrl};
+// engine/src/domain/test_helpers/fake_configurator_adapter.rs
+use oauth2::{AuthUrl, ClientId, RedirectUrl, TokenUrl};
+use crate::domain::configuration::Configuration;
 use crate::domain::default_values::configurator_defaults::*;
+use crate::domain::errors::ConfigurationError;
 use crate::ports::driven::configurator_driven_port::ConfiguratorPort;
 
-pub struct FakeConfiguratorDrivenAdapter {
-    client_id: ClientId,
-    redirect_url: RedirectUrl,
-    auth_url: AuthUrl,
-    token_url: TokenUrl
+pub struct FakeConfiguratorPort {
+    client_id: String,
 }
-impl FakeConfiguratorDrivenAdapter {
-    pub fn new() -> Self {
-        FakeConfiguratorDrivenAdapter {
-            auth_url: AuthUrl::new(DEFAULT_AUTH_URL.to_string()).unwrap(),
-            token_url: TokenUrl::new(DEFAULT_TOKEN_URL.to_string()).unwrap(),
-            client_id: ClientId::new(DEFAULT_CLIENT_ID.to_string()),
-            redirect_url: RedirectUrl::new(DEFAULT_REDIRECT_URL.to_string()).unwrap()
+
+impl FakeConfiguratorPort {
+    pub fn with_client_id(client_id: &str) -> Self {
+        FakeConfiguratorPort {
+            client_id: client_id.to_string(),
+        }
+    }
+
+    pub fn with_default_client_id() -> Self {
+        FakeConfiguratorPort {
+            client_id: DEFAULT_CLIENT_ID.to_string(),
         }
     }
 }
-impl ConfiguratorPort for FakeConfiguratorDrivenAdapter {
 
-    fn auth_url(&self) -> &oauth2::AuthUrl {
-        &self.auth_url
-    }
-
-    fn token_url(&self) -> &oauth2::TokenUrl {
-        &self.token_url
-    }
-
-    fn client_id(&self) -> &oauth2::ClientId {
-        &self.client_id
-    }
-
-    fn redirect_url(&self) -> &RedirectUrl {
-        &self.redirect_url
+impl ConfiguratorPort for FakeConfiguratorPort {
+    fn load(&self) -> Result<Configuration, ConfigurationError> {
+        Ok(Configuration {
+            auth_url: AuthUrl::new(DEFAULT_AUTH_URL.to_string())?,
+            token_url: TokenUrl::new(DEFAULT_TOKEN_URL.to_string())?,
+            client_id: ClientId::new(self.client_id.clone()),
+            redirect_url: RedirectUrl::new(DEFAULT_REDIRECT_URL.to_string())?,
+        })
     }
 }
-
