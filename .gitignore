@@ -18,3 +18,5 @@ Cargo.lock
 **/dist/
 
 **/bruno/
+
+**/txt_export/
