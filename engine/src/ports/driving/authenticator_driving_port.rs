@@ -1,3 +1,3 @@
 pub trait AuthenticatorDrivingPort {
-    fn is_connected(&self) -> bool;
+    fn is_authenticated(&self) -> bool;
 }

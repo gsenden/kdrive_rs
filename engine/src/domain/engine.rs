@@ -4,12 +4,12 @@ use crate::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
 
 pub struct Engine<AP: AuthenticatorDrivenPort> {
     authenticator_driven_port: AP,
-    is_connected: bool,
+    is_authenticated: bool,
 }
 
 impl <AP: AuthenticatorDrivenPort> Engine<AP> {
     pub fn new(authenticator_port: AP) -> Self {
-        Engine { authenticator_driven_port: authenticator_port, is_connected: false }
+        Engine { authenticator_driven_port: authenticator_port, is_authenticated: false }
     }
 
     pub async fn start_initial_auth_flow(&mut self) -> Result<String, AuthFlowError> {
@@ -22,8 +22,8 @@ impl <AP: AuthenticatorDrivenPort> Engine<AP> {
 }
 
 impl<AP: AuthenticatorDrivenPort> AuthenticatorDrivingPort for Engine<AP> {
-    fn is_connected(&self) -> bool {
-        self.is_connected
+    fn is_authenticated(&self) -> bool {
+        self.is_authenticated
     }
 }
 
@@ -42,6 +42,19 @@ mod tests {
         let authenticator = Engine::new(adapter);
 
         // Then the authenticator is not connected
-        assert_eq!(authenticator.is_connected(), false);
+        assert_eq!(authenticator.is_authenticated(), false);
+    }
+
+    #[test]
+    fn engine_without_stored_tokens_is_not_authenticated() {
+        // Given an engine without stored tokens
+        let adapter = FakeAuthenticatorDrivenAdapter::new_default();
+        let engine = Engine::new(adapter);
+
+        // When is_authenticated is called
+        let result = engine.is_authenticated();
+
+        // Then it returns false
+        assert_eq!(result, false);
     }
 }
