@@ -75,6 +75,8 @@ pub enum ConfigurationError {
     #[error("Could not access keyring: {0}")]
     CouldNotAccessKeyring(String),
 
+    #[error("Could not find tokens in preferred store")]
+    NoTokensFoundInStore,
 }
 
 impl From<url::ParseError> for ConfigurationError {
