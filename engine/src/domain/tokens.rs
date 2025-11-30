@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use crate::domain::errors::ConfigurationError;
 use crate::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
+use crate::ports::driving::token_store_driving_port::TokenStoreDrivingPort;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Tokens {
@@ -82,21 +83,35 @@ impl <TRP: TokenStoreDrivenPort, TFP: TokenStoreDrivenPort>TokenStore<TRP, TFP> 
 
         Err(ConfigurationError::MissingStorePort)
     }
+}
 
-    pub(crate) fn has_tokens(&self) -> bool {
+// engine/src/domain/token_store.rs
+impl<TRP: TokenStoreDrivenPort, TFP: TokenStoreDrivenPort> TokenStoreDrivingPort
+for TokenStore<TRP, TFP>
+{
+    fn has_tokens(&self) -> bool {
         self.tokens.is_some()
     }
 
     fn access_token(&self) -> Option<&str> {
-        self.tokens.as_ref().map(|t| t.access_token.as_str())
+        match &self.tokens {
+            Some(t) => Some(t.access_token.as_str()),
+            None => None,
+        }
     }
 
     fn refresh_token(&self) -> Option<&str> {
-        self.tokens.as_ref().map(|t| t.refresh_token.as_str())
+        match &self.tokens {
+            Some(t) => Some(t.refresh_token.as_str()),
+            None => None,
+        }
     }
 
     fn expires_at(&self) -> Option<i64> {
-        self.tokens.as_ref().map(|t| t.expires_at)
+        match &self.tokens {
+            Some(t) => Some(t.expires_at),
+            None => None,
+        }
     }
 }
 
@@ -106,6 +121,7 @@ mod tests {
     use crate::domain::test_helpers::fake_token_store_adapter::*;
     use crate::domain::test_helpers::test_store::TestStore;
     use crate::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
+    use crate::ports::driving::token_store_driving_port::TokenStoreDrivingPort;
 
     fn file_only_store() -> TestStore {
         let file_store_adapter = FakeTokenStoreFileAdapter::with_tokens();
@@ -122,11 +138,6 @@ mod tests {
         let file_store_adapter = FakeTokenStoreFileAdapter::with_tokens();
         TestStore::load(Some(ring_store_adapter), Some(file_store_adapter)).unwrap()
     }
-
-    // fn empty_ring_only_store() -> TestStore {
-    //     let ring_store_adapter = FakeTokenStoreRingAdapter::empty();
-    //     TestStore::
-    // }
 
     #[test]
     fn when_creating_a_new_store_at_least_one_port_should_be_some() {

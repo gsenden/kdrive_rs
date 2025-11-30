@@ -1,29 +1,27 @@
 use crate::domain::errors::AuthFlowError;
-use crate::domain::tokens::TokenStore;
 use crate::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
-use crate::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
 use crate::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
+use crate::ports::driving::token_store_driving_port::TokenStoreDrivingPort;
 
-
-pub struct Engine<AP, TRP, TFP>
+pub struct Engine<AuthPort, TokenPort>
 where
-    AP: AuthenticatorDrivenPort,
-    TRP: TokenStoreDrivenPort,
-    TFP: TokenStoreDrivenPort,
+    AuthPort: AuthenticatorDrivenPort,
+    TokenPort: TokenStoreDrivingPort,
 {
-    authenticator_driven_port: AP,
-    token_store: TokenStore<TRP, TFP>,
+    authenticator_driven_port: AuthPort,
+    #[allow(dead_code)]
+    token_store: TokenPort,
     is_authenticated: bool,
 }
-impl<AP, TRP, TFP> Engine<AP, TRP, TFP>
+
+impl<AuthPort, TokenPort> Engine<AuthPort, TokenPort>
 where
-    AP: AuthenticatorDrivenPort,
-    TRP: TokenStoreDrivenPort,
-    TFP: TokenStoreDrivenPort,
+    AuthPort: AuthenticatorDrivenPort,
+    TokenPort: TokenStoreDrivingPort,
 {
     pub fn new(
-        authenticator_port: AP,
-        token_store: TokenStore<TRP, TFP>,
+        authenticator_port: AuthPort,
+        token_store: TokenPort,
     ) -> Self {
         let is_authenticated = token_store.has_tokens();
         Engine {
@@ -43,11 +41,10 @@ where
     }
 }
 
-impl<AP, TRP, TFP> AuthenticatorDrivingPort for Engine<AP, TRP, TFP>
+impl<AuthPort, TokenPort> AuthenticatorDrivingPort for Engine<AuthPort, TokenPort>
 where
-    AP: AuthenticatorDrivenPort,
-    TRP: TokenStoreDrivenPort,
-    TFP: TokenStoreDrivenPort,
+    AuthPort: AuthenticatorDrivenPort,
+    TokenPort: TokenStoreDrivingPort,
 {
     fn is_authenticated(&self) -> bool {
         self.is_authenticated
