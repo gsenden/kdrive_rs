@@ -113,4 +113,26 @@ mod tests {
         assert!(result.is_ok());
     }
 
+    #[tokio::test]
+    async fn engine_can_complete_full_auth_flow() {
+        // Given an unauthenticated engine
+        use crate::domain::test_helpers::test_store::TestStore;
+
+        let adapter = FakeAuthenticatorDrivenAdapter::new_default();
+        let token_store: TestStore = TokenStore::load(
+            Some(FakeTokenStoreRingAdapter::empty()),
+            None
+        ).unwrap();
+        let mut engine = Engine::new(adapter, token_store);
+
+        // When start_initial_auth_flow is called
+        _ = engine.start_initial_auth_flow().await;
+
+        // And continue_initial_auth_flow is called
+        let continue_result = engine.continue_initial_auth_flow().await;
+
+        // Then both succeed
+        assert!(continue_result.is_ok());
+    }
+
 }

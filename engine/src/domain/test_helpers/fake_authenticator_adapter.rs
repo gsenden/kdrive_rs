@@ -43,6 +43,6 @@ impl AuthenticatorDrivenPort for FakeAuthenticatorDrivenAdapter {
     }
 
     async fn continue_initial_auth_flow(&mut self) -> Result<bool, AuthFlowError> {
-        todo!()
+        Ok(true)
     }
 }
