@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package kdrive;
+
+service KdriveService {
+  rpc CheckAuthentication(Empty) returns (AuthStatus);
+  rpc StartAuthFlow(Empty) returns (AuthUrlResponse);
+  rpc CompleteAuthFlow(Empty) returns (AuthFlowResult);
+}
+
+message Empty {}
+
+message AuthStatus {
+  bool is_authenticated = 1;
+}
+
+message AuthUrlResponse {
+  string auth_url = 1;
+}
+
+message AuthFlowResult {
+  bool success = 1;
+  string error = 2;
+}
