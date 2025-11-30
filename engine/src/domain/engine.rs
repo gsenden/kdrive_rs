@@ -25,13 +25,13 @@ where
         authenticator_port: AP,
         token_store: TokenStore<TRP, TFP>,
     ) -> Self {
-        // let is_authenticated = token_store.is_some();
-        // Engine {
-        //     authenticator_driven_port: authenticator_port,
-        //     token_store,
-        //     is_authenticated,
-        // }
-        todo!()
+        let is_authenticated = token_store.has_tokens();
+        Engine {
+            authenticator_driven_port: authenticator_port,
+            token_store,
+            is_authenticated,
+        }
+
     }
 
     pub async fn start_initial_auth_flow(&mut self) -> Result<String, AuthFlowError> {
@@ -58,6 +58,47 @@ where
 mod tests {
     // use crate::domain::test_helpers::fake_token_store_adapter::FakeTokenStoreRingAdapter;
     // use crate::domain::tokens::TokenStore;
+
+    use crate::domain::engine::Engine;
+    use crate::domain::test_helpers::fake_authenticator_adapter::FakeAuthenticatorDrivenAdapter;
+    use crate::domain::test_helpers::fake_token_store_adapter::FakeTokenStoreRingAdapter;
+    use crate::domain::test_helpers::test_store::TestStore;
+    use crate::domain::tokens::TokenStore;
+    use crate::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
+
+    #[test]
+    fn engine_is_not_authenticated_when_token_store_has_no_tokens() {
+        // Given an engine with an empty token store
+        let adapter = FakeAuthenticatorDrivenAdapter::new_default();
+        let token_store: TestStore = TokenStore::load(
+            Some(FakeTokenStoreRingAdapter::empty()),
+            None
+        ).unwrap();
+        let engine = Engine::new(adapter, token_store);
+
+        // When is_authenticated is called
+        let result = engine.is_authenticated();
+
+        // Then it returns false
+        assert_eq!(result, false);
+    }
+
+    #[test]
+    fn engine_is_authenticated_when_token_store_has_tokens() {
+        // Given an engine with a token store that has tokens
+        let adapter = FakeAuthenticatorDrivenAdapter::new_default();
+        let token_store: TestStore = TokenStore::load(
+            Some(FakeTokenStoreRingAdapter::with_tokens()),
+            None
+        ).unwrap();
+        let engine = Engine::new(adapter, token_store);
+
+        // When is_authenticated is called
+        let result = engine.is_authenticated();
+
+        // Then it returns true
+        assert_eq!(result, true);
+    }
 
 
 

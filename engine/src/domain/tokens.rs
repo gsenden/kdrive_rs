@@ -104,10 +104,8 @@ impl <TRP: TokenStoreDrivenPort, TFP: TokenStoreDrivenPort>TokenStore<TRP, TFP> 
 mod tests {
     use crate::domain::errors::ConfigurationError;
     use crate::domain::test_helpers::fake_token_store_adapter::*;
-    use crate::domain::tokens::TokenStore;
+    use crate::domain::test_helpers::test_store::TestStore;
     use crate::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
-
-    type TestStore = TokenStore<FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter>;
 
     fn file_only_store() -> TestStore {
         let file_store_adapter = FakeTokenStoreFileAdapter::with_tokens();
