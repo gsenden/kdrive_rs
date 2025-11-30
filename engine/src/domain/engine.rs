@@ -94,50 +94,23 @@ mod tests {
         assert_eq!(result, true);
     }
 
+    #[tokio::test]
+    async fn engine_returns_auth_url_when_starting_auth_flow() {
+        // Given an unauthenticated engine
+        use crate::domain::test_helpers::test_store::TestStore;
 
+        let adapter = FakeAuthenticatorDrivenAdapter::new_default();
+        let token_store: TestStore = TokenStore::load(
+            Some(FakeTokenStoreRingAdapter::empty()),
+            None
+        ).unwrap();
+        let mut engine = Engine::new(adapter, token_store);
 
-    // #[test]
-    // fn when_engine_is_created_without_previous_connection_it_is_not_connected() {
-    //     // Given a new authenticator-driven adapter
-    //     let authenticator_adapter = FakeAuthenticatorDrivenAdapter::new_default();
-    //     let token_store_adapter = TokenStore::load(Some(FakeTokenStoreRingAdapter), None).unwrap();
-    //
-    //     // When the authenticator is created
-    //     let engine = Engine::new(authenticator_adapter, Some(token_store_adapter));
-    //
-    //     // Then the authenticator is not connected
-    //     assert_eq!(engine.is_authenticated(), false);
-    // }
-    //
-    // #[test]
-    // fn engine_without_stored_tokens_is_not_authenticated() {
-    //     // Given an engine without stored tokens
-    //     let adapter = FakeAuthenticatorDrivenAdapter::new_default();
-    //     let engine = Engine::new(adapter);
-    //
-    //     // When is_authenticated is called
-    //     let result = engine.is_authenticated();
-    //
-    //     // Then it returns false
-    //     assert_eq!(result, false);
-    // }
-    //
-    // #[test]
-    // fn engine_with_stored_tokens_is_authenticated() {
-    //     // Given an engine with stored tokens
-    //     let adapter = FakeAuthenticatorDrivenAdapter::new_default();
-    //     let token_store = TokenStore::load(
-    //         Some(FakeTokenStoreRingAdapter),
-    //         None
-    //     ).unwrap();
-    //     let engine = Engine::new(adapter, token_store);
-    //
-    //     // When is_authenticated is called
-    //     let result = engine.is_authenticated();
-    //
-    //     // Then it returns true
-    //     assert_eq!(result, true);
-    // }
+        // When start_initial_auth_flow is called
+        let result = engine.start_initial_auth_flow().await;
 
+        // Then it returns a valid auth URL
+        assert!(result.is_ok());
+    }
 
 }
