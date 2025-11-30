@@ -41,9 +41,17 @@ where
     }
 
     pub async fn continue_initial_auth_flow(&mut self) -> Result<bool, AuthFlowError> {
-        let result = self.authenticator_driven_port.continue_initial_auth_flow().await?;
-        self.event_bus.emit(EngineEvent::AuthFlowCompleted);
-        Ok(result)
+        let result = self.authenticator_driven_port.continue_initial_auth_flow().await;
+        match result {
+            Ok(result) => {
+                self.event_bus.emit(EngineEvent::AuthFlowCompleted);
+                Ok(result)
+            }
+            Err(error) => {
+                self.event_bus.emit(EngineEvent::AuthFlowFailed {reason: error.to_string()});
+                Err(error)
+            }
+        }
     }
 }
 
@@ -166,6 +174,26 @@ mod tests {
 
         // Then TokensStored event is emitted
         assert!(event_bus.get_events().contains(&crate::domain::events::EngineEvent::AuthFlowCompleted));
+    }
+
+    #[tokio::test]
+    async fn engine_emits_auth_flow_failed_event_when_auth_fails() {
+        // Given an engine that will fail auth
+        let adapter = FakeAuthenticatorDrivenAdapter::new_default_failing();
+        let token_store: TestStore = TokenStore::load(
+            Some(FakeTokenStoreRingAdapter::empty()),
+            None
+        ).unwrap();
+        let event_bus = FakeEventBus::new();
+        let mut engine = Engine::new(adapter, token_store, event_bus.clone());
+
+        // When continue_initial_auth_flow fails
+        _ = engine.continue_initial_auth_flow().await;
+
+        // Then AuthFlowFailed event is emitted
+        assert!(event_bus.get_events().iter().any(|e|
+            matches!(e, crate::domain::events::EngineEvent::AuthFlowFailed { .. })
+        ));
     }
 
 }

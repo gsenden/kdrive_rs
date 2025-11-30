@@ -13,11 +13,12 @@ pub struct FakeAuthenticatorDrivenAdapter {
     token_url: TokenUrl,
     client_id: ClientId,
     redirect_url: RedirectUrl,
+    should_fail: bool
 }
 
 impl FakeAuthenticatorDrivenAdapter {
     pub fn new(auth_url: AuthUrl, token_url: TokenUrl, client_id: ClientId, redirect_url: RedirectUrl) -> Self {
-        FakeAuthenticatorDrivenAdapter { auth_url, token_url, client_id, redirect_url }
+        FakeAuthenticatorDrivenAdapter { auth_url, token_url, client_id, redirect_url, should_fail: false }
     }
     pub fn new_default() -> Self {
         let port = FakeConfiguratorPort::with_client_id("test-client-id");
@@ -29,6 +30,19 @@ impl FakeAuthenticatorDrivenAdapter {
             config.client_id,
             config.redirect_url,
         )
+    }
+
+    pub fn new_default_failing() -> Self {
+        let port = FakeConfiguratorPort::with_client_id("test-client-id");
+        let config = port.load().unwrap();
+        let mut adapter = FakeAuthenticatorDrivenAdapter::new(
+            config.auth_url,
+            config.token_url,
+            config.client_id,
+            config.redirect_url,
+        );
+        adapter.should_fail = true;
+        adapter
     }
 }
 
@@ -43,6 +57,9 @@ impl AuthenticatorDrivenPort for FakeAuthenticatorDrivenAdapter {
     }
 
     async fn continue_initial_auth_flow(&mut self) -> Result<bool, AuthFlowError> {
+        if self.should_fail {
+            return Err(AuthFlowError::FlowNotStarted)
+        }
         Ok(true)
     }
 }
