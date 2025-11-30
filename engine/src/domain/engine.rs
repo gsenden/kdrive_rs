@@ -11,7 +11,6 @@ where
     authenticator_driven_port: AuthPort,
     #[allow(dead_code)]
     token_store: TokenPort,
-    is_authenticated: bool,
 }
 
 impl<AuthPort, TokenPort> Engine<AuthPort, TokenPort>
@@ -23,11 +22,9 @@ where
         authenticator_port: AuthPort,
         token_store: TokenPort,
     ) -> Self {
-        let is_authenticated = token_store.has_tokens();
         Engine {
             authenticator_driven_port: authenticator_port,
             token_store,
-            is_authenticated,
         }
 
     }
@@ -47,7 +44,7 @@ where
     TokenPort: TokenStoreDrivingPort,
 {
     fn is_authenticated(&self) -> bool {
-        self.is_authenticated
+        self.token_store.has_tokens()
     }
 }
 
