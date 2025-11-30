@@ -16,9 +16,6 @@ use engine::domain::errors::AuthFlowError;
 use engine::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 
 pub struct KDriveAuthenticator {
-    auth_url: AuthUrl,
-    token_url: TokenUrl,
-    client_id: ClientId,
     redirect_url: RedirectUrl,
     client: Client< BasicErrorResponse,
         BasicTokenResponse,
@@ -39,6 +36,9 @@ pub struct KDriveAuthenticator {
     access_token: Option<AccessToken>,
     refresh_token: Option<RefreshToken>,
     access_token_expiry: Option<Instant>,
+    pub auth_url: AuthUrl,
+    pub token_url: TokenUrl,
+    pub client_id: ClientId,
 }
 #[async_trait]
 impl AuthenticatorDrivenPort for KDriveAuthenticator {
