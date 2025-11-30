@@ -1,6 +1,6 @@
 #[derive(Clone)]
+#[derive(PartialEq)]
 pub enum EngineEvent {
-    AuthFlowStarted { url: String },
-    AuthCodeReceived,
-    TokensStored,
+    AuthFlowCompleted,
+    AuthFlowFailed { reason: String },
 }

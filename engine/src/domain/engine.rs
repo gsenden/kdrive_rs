@@ -37,13 +37,13 @@ where
     }
 
     pub async fn start_initial_auth_flow(&mut self) -> Result<String, AuthFlowError> {
-        let url =self.authenticator_driven_port.start_initial_auth_flow().await?;
-        self.event_bus.emit(EngineEvent::AuthFlowStarted { url: url.clone() });
-        Ok(url)
+        self.authenticator_driven_port.start_initial_auth_flow().await
     }
 
     pub async fn continue_initial_auth_flow(&mut self) -> Result<bool, AuthFlowError> {
-        self.authenticator_driven_port.continue_initial_auth_flow().await
+        let result = self.authenticator_driven_port.continue_initial_auth_flow().await?;
+        self.event_bus.emit(EngineEvent::AuthFlowCompleted);
+        Ok(result)
     }
 }
 
@@ -151,7 +151,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn engine_emits_event_when_starting_auth_flow() {
+    async fn engine_emits_tokens_stored_event_when_completing_auth_flow() {
         // Given an engine with event bus
         let adapter = FakeAuthenticatorDrivenAdapter::new_default();
         let token_store: TestStore = TokenStore::load(
@@ -161,11 +161,11 @@ mod tests {
         let event_bus = FakeEventBus::new();
         let mut engine = Engine::new(adapter, token_store, event_bus.clone());
 
-        // When start_initial_auth_flow is called
-        _ = engine.start_initial_auth_flow().await;
+        // When continue_initial_auth_flow is called
+        _ = engine.continue_initial_auth_flow().await;
 
-        // Then an event is emitted
-        assert_eq!(event_bus.get_events().len(), 1);
+        // Then TokensStored event is emitted
+        assert!(event_bus.get_events().contains(&crate::domain::events::EngineEvent::AuthFlowCompleted));
     }
 
 }
