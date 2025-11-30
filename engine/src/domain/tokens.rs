@@ -44,7 +44,7 @@ where
     TRP: TokenStoreDrivenPort,
     TFP: TokenStoreDrivenPort
 {
-    tokens: Tokens,
+    tokens: Option<Tokens>,
     port: ActivePort<TRP, TFP>
 }
 
@@ -55,13 +55,13 @@ impl <TRP: TokenStoreDrivenPort, TFP: TokenStoreDrivenPort>TokenStore<TRP, TFP> 
         file_store: Option<TFP>
     ) -> Result<Self, ConfigurationError> {
         let port = TokenStore::choose_port(key_ring_store, file_store)?;
-        Ok(TokenStore {port, tokens})
+        Ok(TokenStore {tokens: Some(tokens), port})
     }
 
     pub fn load(key_ring_store: Option<TRP>,
                 file_store: Option<TFP>) -> Result<Self, ConfigurationError> {
         let port = TokenStore::choose_port(key_ring_store, file_store)?;
-        let tokens = port.load()?.ok_or_else(|| ConfigurationError::NoTokensFoundInStore)?;
+        let tokens = port.load()?;
         Ok(TokenStore {tokens, port})
     }
 
@@ -82,19 +82,21 @@ impl <TRP: TokenStoreDrivenPort, TFP: TokenStoreDrivenPort>TokenStore<TRP, TFP> 
 
         Err(ConfigurationError::MissingStorePort)
     }
-}
 
-impl <TRP: TokenStoreDrivenPort, TFP: TokenStoreDrivenPort>TokenStore<TRP, TFP> {
-    fn access_token(&self) -> &str {
-        &self.tokens.access_token
+    pub(crate) fn has_tokens(&self) -> bool {
+        self.tokens.is_some()
     }
 
-    fn refresh_token(&self) -> &str {
-        &self.tokens.refresh_token
+    fn access_token(&self) -> Option<&str> {
+        self.tokens.as_ref().map(|t| t.access_token.as_str())
     }
 
-    fn expires_at(&self) -> i64 {
-        self.tokens.expires_at
+    fn refresh_token(&self) -> Option<&str> {
+        self.tokens.as_ref().map(|t| t.refresh_token.as_str())
+    }
+
+    fn expires_at(&self) -> Option<i64> {
+        self.tokens.as_ref().map(|t| t.expires_at)
     }
 }
 
@@ -108,24 +110,29 @@ mod tests {
     type TestStore = TokenStore<FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter>;
 
     fn file_only_store() -> TestStore {
-        let file_store_adapter = FakeTokenStoreFileAdapter;
+        let file_store_adapter = FakeTokenStoreFileAdapter::with_tokens();
         TestStore::load(None, Some(file_store_adapter)).unwrap()
     }
 
     fn ring_only_store() -> TestStore {
-        let ring_store_adapter = FakeTokenStoreRingAdapter;
+        let ring_store_adapter = FakeTokenStoreRingAdapter::with_tokens();
         TestStore::load(Some(ring_store_adapter), None).unwrap()
     }
 
     fn both_store() -> TestStore {
-        let ring_store_adapter = FakeTokenStoreRingAdapter;
-        let file_store_adapter = FakeTokenStoreFileAdapter;
+        let ring_store_adapter = FakeTokenStoreRingAdapter::with_tokens();
+        let file_store_adapter = FakeTokenStoreFileAdapter::with_tokens();
         TestStore::load(Some(ring_store_adapter), Some(file_store_adapter)).unwrap()
     }
 
+    // fn empty_ring_only_store() -> TestStore {
+    //     let ring_store_adapter = FakeTokenStoreRingAdapter::empty();
+    //     TestStore::
+    // }
+
     #[test]
     fn when_creating_a_new_store_at_least_one_port_should_be_some() {
-        let file_store_adapter = FakeTokenStoreFileAdapter;
+        let file_store_adapter = FakeTokenStoreFileAdapter::with_tokens();
         let tokens = file_store_adapter.load().unwrap().unwrap();
 
         let store_result = TestStore::new(tokens,None, Some(file_store_adapter));
@@ -135,7 +142,7 @@ mod tests {
 
     #[test]
     fn when_creating_a_new_store_with_both_ports_none_should_return_an_error() {
-        let file_store_adapter = FakeTokenStoreFileAdapter;
+        let file_store_adapter = FakeTokenStoreFileAdapter::with_tokens();
         let tokens = file_store_adapter.load().unwrap().unwrap();
 
         let store_result = TestStore::new(tokens, None, None);
@@ -150,38 +157,38 @@ mod tests {
     #[test]
     fn when_the_store_has_only_a_file_port_the_correct_access_token_should_be_returned() {
         let store = file_only_store();
-        assert_eq!(store.access_token(), TEST_FILE_ACCESS_TOKEN);
+        assert_eq!(store.access_token(), Some(TEST_FILE_ACCESS_TOKEN));
     }
 
     #[test]
     fn when_the_store_has_only_a_ring_port_the_correct_access_token_should_be_returned() {
         let store = ring_only_store();
-        assert_eq!(store.access_token(), TEST_RING_ACCESS_TOKEN);
+        assert_eq!(store.access_token(), Some(TEST_RING_ACCESS_TOKEN));
     }
 
     #[test]
     fn when_the_store_has_both_ports_the_correct_access_token_should_be_returned() {
         let store = both_store();
-        assert_eq!(store.access_token(), TEST_RING_ACCESS_TOKEN);
+        assert_eq!(store.access_token(), Some(TEST_RING_ACCESS_TOKEN));
     }
 
     // refresh_token
     #[test]
     fn when_the_store_has_only_a_file_port_the_correct_refresh_token_should_be_returned() {
         let store = file_only_store();
-        assert_eq!(store.refresh_token(), TEST_FILE_REFRESH_TOKEN);
+        assert_eq!(store.refresh_token(), Some(TEST_FILE_REFRESH_TOKEN));
     }
 
     #[test]
     fn when_the_store_has_only_a_ring_port_the_correct_refresh_token_should_be_returned() {
         let store = ring_only_store();
-        assert_eq!(store.refresh_token(), TEST_RING_REFRESH_TOKEN);
+        assert_eq!(store.refresh_token(), Some(TEST_RING_REFRESH_TOKEN));
     }
 
     #[test]
     fn when_the_store_has_both_ports_the_correct_refresh_token_should_be_returned() {
         let store = both_store();
-        assert_eq!(store.refresh_token(), TEST_RING_REFRESH_TOKEN);
+        assert_eq!(store.refresh_token(), Some(TEST_RING_REFRESH_TOKEN));
     }
 
     // expires_at
@@ -189,18 +196,32 @@ mod tests {
     #[test]
     fn when_the_store_has_only_a_file_port_the_correct_expires_at_should_be_returned() {
         let store = file_only_store();
-        assert_eq!(store.expires_at(), TEST_FILE_EXPIRES_AT);
+        assert_eq!(store.expires_at(), Some(TEST_FILE_EXPIRES_AT));
     }
 
     #[test]
     fn when_the_store_has_only_a_ring_port_the_correct_expires_at_should_be_returned() {
         let store = ring_only_store();
-        assert_eq!(store.expires_at(), TEST_RING_EXPIRES_AT);
+        assert_eq!(store.expires_at(), Some(TEST_RING_EXPIRES_AT));
     }
 
     #[test]
     fn when_the_store_has_both_ports_the_correct_expires_at_should_be_returned() {
         let store = both_store();
-        assert_eq!(store.expires_at(), TEST_RING_EXPIRES_AT);
+        assert_eq!(store.expires_at(), Some(TEST_RING_EXPIRES_AT));
+    }
+
+    #[test]
+    fn token_store_without_tokens_returns_that_it_has_no_tokens() {
+        // Given a token store without tokens
+        let ring_adapter = FakeTokenStoreRingAdapter::empty();
+        let store =
+            TestStore::load(Some(ring_adapter), None).unwrap();
+
+        // When has_tokens is called
+        let result = store.has_tokens();
+
+        // Then it returns false
+        assert_eq!(result, false);
     }
 }

@@ -1,6 +1,6 @@
 pub trait TokenStoreDrivingPort {
-    fn access_token(&self) -> &str;
-    fn refresh_token(&self) -> &str;
-    fn expires_at(&self) -> i64;
+    fn has_tokens(&self) -> bool;
+    fn access_token(&self) -> Option<&str>;
+    fn refresh_token(&self) -> Option<&str>;
+    fn expires_at(&self) -> Option<i64>;
 }
-

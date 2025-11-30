@@ -15,6 +15,9 @@ pub struct FakeAuthenticatorDrivenAdapter {
 }
 
 impl FakeAuthenticatorDrivenAdapter {
+    pub fn new(auth_url: AuthUrl, token_url: TokenUrl, client_id: ClientId, redirect_url: RedirectUrl) -> Self {
+        FakeAuthenticatorDrivenAdapter { auth_url, token_url, client_id, redirect_url }
+    }
     pub fn new_default() -> Self {
         let port = FakeConfiguratorPort::with_client_id("test-client-id");
         let config = port.load().unwrap();
@@ -30,10 +33,6 @@ impl FakeAuthenticatorDrivenAdapter {
 
 #[async_trait]
 impl AuthenticatorDrivenPort for FakeAuthenticatorDrivenAdapter {
-    fn new(auth_url: AuthUrl, token_url: TokenUrl, client_id: ClientId, redirect_url: RedirectUrl) -> Self {
-        FakeAuthenticatorDrivenAdapter { auth_url, token_url, client_id, redirect_url }
-    }
-
     async fn start_initial_auth_flow(&mut self) -> Result<String, AuthFlowError> {
         todo!()
     }

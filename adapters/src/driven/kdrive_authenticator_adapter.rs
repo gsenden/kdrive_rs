@@ -42,18 +42,6 @@ pub struct KDriveAuthenticator {
 }
 #[async_trait]
 impl AuthenticatorDrivenPort for KDriveAuthenticator {
-    fn new(auth_url: AuthUrl, token_url: TokenUrl, client_id: ClientId, redirect_url: RedirectUrl) -> Self {
-        let client = BasicClient::new(client_id.clone())
-            .set_auth_uri(auth_url.clone())
-            .set_token_uri(token_url.clone())
-            .set_redirect_uri(redirect_url.clone());
-
-        Self {
-            auth_url, token_url, client_id, redirect_url, client,
-            pkce_verifier: None, csrf_token: None, server_handle: None, code_rx: None,
-            access_token: None, refresh_token: None, access_token_expiry: None
-        }
-    }
 
     async fn start_initial_auth_flow(&mut self) -> Result<String, AuthFlowError> {
         let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
@@ -125,6 +113,18 @@ impl AuthenticatorDrivenPort for KDriveAuthenticator {
 }
 
 impl KDriveAuthenticator {
+    fn new(auth_url: AuthUrl, token_url: TokenUrl, client_id: ClientId, redirect_url: RedirectUrl) -> Self {
+        let client = BasicClient::new(client_id.clone())
+            .set_auth_uri(auth_url.clone())
+            .set_token_uri(token_url.clone())
+            .set_redirect_uri(redirect_url.clone());
+
+        Self {
+            auth_url, token_url, client_id, redirect_url, client,
+            pkce_verifier: None, csrf_token: None, server_handle: None, code_rx: None,
+            access_token: None, refresh_token: None, access_token_expiry: None
+        }
+    }
 
     pub async fn get_access_token(&mut self) -> Result<AccessToken, AuthFlowError> {
         if let (Some(token), Some(expiry)) =
