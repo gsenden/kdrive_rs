@@ -12,6 +12,7 @@ use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
 use tokio::time::Instant;
 use engine::domain::callback_endpoint::{CallbackEndpoint, ParseRedirectUrl};
+use engine::domain::configuration::Configuration;
 use engine::domain::errors::AuthFlowError;
 use engine::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 
@@ -113,7 +114,11 @@ impl AuthenticatorDrivenPort for KDriveAuthenticator {
 }
 
 impl KDriveAuthenticator {
-    fn new(auth_url: AuthUrl, token_url: TokenUrl, client_id: ClientId, redirect_url: RedirectUrl) -> Self {
+    pub fn new_from_config(config: &Configuration) -> Self{
+        KDriveAuthenticator::new(config.auth_url.clone(), config.token_url.clone(), config.client_id.clone(), config.redirect_url.clone())
+    }
+    
+    pub fn new(auth_url: AuthUrl, token_url: TokenUrl, client_id: ClientId, redirect_url: RedirectUrl) -> Self {
         let client = BasicClient::new(client_id.clone())
             .set_auth_uri(auth_url.clone())
             .set_token_uri(token_url.clone())

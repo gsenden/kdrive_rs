@@ -124,3 +124,9 @@ impl From<url::ParseError> for AuthError {
         AuthError::UrlParseError(err.to_string())
     }
 }
+
+#[derive(Debug, Error)]
+pub enum EventBusError {
+    #[error("Event bus lock poisoned: {0}")]
+    LockPoisoned(String),
+}
