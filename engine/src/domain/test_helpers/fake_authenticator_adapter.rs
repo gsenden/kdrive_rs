@@ -4,6 +4,8 @@ use oauth2::{AuthUrl, ClientId, RedirectUrl, TokenUrl};
 use url::Url;
 use crate::domain::errors::AuthFlowError;
 use crate::domain::test_helpers::fake_configurator_adapter::FakeConfiguratorPort;
+use crate::domain::test_helpers::fake_token_store_adapter::*;
+use crate::domain::tokens::Tokens;
 use crate::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 use crate::ports::driven::configurator_driven_port::ConfiguratorPort;
 
@@ -61,5 +63,16 @@ impl AuthenticatorDrivenPort for FakeAuthenticatorDrivenAdapter {
             return Err(AuthFlowError::FlowNotStarted)
         }
         Ok(true)
+    }
+
+    async fn get_tokens(&self) -> Result<Tokens, AuthFlowError> {
+        if self.should_fail {
+            return Err(AuthFlowError::FlowNotStarted);
+        }
+        Ok(Tokens {
+            access_token: TEST_RING_ACCESS_TOKEN.parse().unwrap(),
+            refresh_token: TEST_RING_REFRESH_TOKEN.parse().unwrap(),
+            expires_at: TEST_RING_EXPIRES_AT,
+        })
     }
 }

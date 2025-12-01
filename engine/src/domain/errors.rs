@@ -107,6 +107,8 @@ pub enum AuthFlowError {
     TokenRequestFailed(String),
     #[error("Event bus error: {0}")]
     EventBusError(#[from] EventBusError),
+    #[error("Configuration error: {0}")]
+    ConfigurationError(#[from] ConfigurationError),
 }
 
 impl From<oneshot::error::RecvError> for AuthFlowError {

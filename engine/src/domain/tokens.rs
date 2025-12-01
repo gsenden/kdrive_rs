@@ -113,6 +113,12 @@ for TokenStore<TRP, TFP>
             None => None,
         }
     }
+
+    fn save_tokens(&mut self, tokens: &Tokens) -> Result<(), ConfigurationError> {
+        self.port.save(tokens)?;
+        self.tokens = Some(tokens.clone());
+        Ok(())
+    }
 }
 
 #[cfg(test)]

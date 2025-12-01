@@ -14,6 +14,7 @@ use tokio::time::Instant;
 use engine::domain::callback_endpoint::{CallbackEndpoint, ParseRedirectUrl};
 use engine::domain::configuration::Configuration;
 use engine::domain::errors::AuthFlowError;
+use engine::domain::tokens::Tokens;
 use engine::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 
 pub struct KDriveAuthenticator {
@@ -110,6 +111,30 @@ impl AuthenticatorDrivenPort for KDriveAuthenticator {
         }
 
         Ok(true)
+    }
+
+    async fn get_tokens(&self) -> Result<Tokens, AuthFlowError> {
+        let access_token = self.access_token
+            .as_ref()
+            .ok_or(AuthFlowError::FlowNotStarted)?
+            .secret()
+            .clone();
+
+        let refresh_token = self.refresh_token
+            .as_ref()
+            .ok_or(AuthFlowError::FlowNotStarted)?
+            .secret()
+            .clone();
+
+        let expires_at = self.access_token_expiry
+            .map(|instant| instant.elapsed().as_secs() as i64)
+            .unwrap_or(0);
+
+        Ok(Tokens {
+            access_token,
+            refresh_token,
+            expires_at,
+        })
     }
 }
 

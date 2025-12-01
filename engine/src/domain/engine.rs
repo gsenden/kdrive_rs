@@ -44,6 +44,8 @@ where
         let result = self.authenticator_driven_port.continue_initial_auth_flow().await;
         match result {
             Ok(result) => {
+                let tokens = self.authenticator_driven_port.get_tokens().await?;
+                self.token_store.save_tokens(&tokens)?;
                 self.event_bus.emit(EngineEvent::AuthFlowCompleted)?;
                 Ok(result)
             }
@@ -74,7 +76,7 @@ mod tests {
     use crate::domain::engine::Engine;
     use crate::domain::test_helpers::fake_authenticator_adapter::FakeAuthenticatorDrivenAdapter;
     use crate::domain::test_helpers::fake_event_bus::FakeEventBus;
-    use crate::domain::test_helpers::fake_token_store_adapter::FakeTokenStoreRingAdapter;
+    use crate::domain::test_helpers::fake_token_store_adapter::{FakeTokenStoreFileAdapter, FakeTokenStoreRingAdapter};
     use crate::domain::test_helpers::test_store::TestStore;
     use crate::domain::tokens::TokenStore;
     use crate::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
@@ -194,6 +196,27 @@ mod tests {
         assert!(event_bus.get_events().iter().any(|e|
             matches!(e, crate::domain::events::EngineEvent::AuthFlowFailed { .. })
         ));
+    }
+
+    #[tokio::test]
+    async fn engine_persists_tokens_after_auth_flow() {
+        // Given an engine with token store
+        let adapter = FakeAuthenticatorDrivenAdapter::new_default();
+        let fake_ring_tokens = FakeTokenStoreRingAdapter::empty();
+        let fake_file_tokens = FakeTokenStoreFileAdapter::empty();
+        let token_store: TestStore = TestStore::load(
+            Some(fake_ring_tokens),
+            Some(fake_file_tokens)
+        ).unwrap();
+        let event_bus = FakeEventBus::new();
+        let mut engine = Engine::new(adapter, token_store, event_bus);
+
+        // When auth flow completes
+        _ = engine.start_initial_auth_flow().await;
+        _ = engine.continue_initial_auth_flow().await;
+
+        // Then tokens are persisted
+        assert!(engine.is_authenticated());
     }
 
 }
