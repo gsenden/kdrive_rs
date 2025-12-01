@@ -3,9 +3,9 @@ syntax = "proto3";
 package kdrive;
 
 service KdriveService {
-  rpc CheckAuthentication(Empty) returns (AuthStatus);
-  rpc StartAuthFlow(Empty) returns (AuthUrlResponse);
-  rpc CompleteAuthFlow(Empty) returns (AuthFlowResult);
+  rpc IsAuthenticated(Empty) returns (AuthStatus);
+  rpc StartInitialAuthFlow(Empty) returns (AuthUrlResponse);
+  rpc ContinueInitialAuthFlow(Empty) returns (AuthFlowResult);
 }
 
 message Empty {}

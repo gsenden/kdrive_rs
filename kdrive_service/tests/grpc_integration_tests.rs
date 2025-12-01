@@ -57,7 +57,7 @@ async fn grpc_client_can_check_authentication_status() {
 
     // When we create a client and check authentication
     let mut client = KdriveServiceClient::new(channel);
-    let response = client.check_authentication(Request::new(Empty {})).await;
+    let response = client.is_authenticated(Request::new(Empty {})).await;
 
     // Then we get a response
     match response {
@@ -84,7 +84,7 @@ async fn grpc_client_can_start_auth_flow() {
     // When we connect and start auth flow
     let channel = connect_to_server().await;
     let mut client = KdriveServiceClient::new(channel);
-    let response = client.start_auth_flow(Request::new(Empty {})).await;
+    let response = client.start_initial_auth_flow(Request::new(Empty {})).await;
 
     // Then we get a non-empty auth URL
     match response {
@@ -126,7 +126,7 @@ async fn grpc_client_can_complete_auth_flow() {
     // When we connect and complete auth flow
     let channel = connect_to_server().await;
     let mut client = KdriveServiceClient::new(channel);
-    let response = client.complete_auth_flow(Request::new(Empty {})).await;
+    let response = client.continue_initial_auth_flow(Request::new(Empty {})).await;
 
     // Then we get success
     match response {

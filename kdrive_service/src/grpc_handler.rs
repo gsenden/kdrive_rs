@@ -38,17 +38,14 @@ where
     TokenPort: TokenStoreDrivingPort + Send + Sync + 'static,
     EventPort: EventBusDrivenPort + Send + Sync + 'static,
 {
-    async fn check_authentication(
-        &self,
-        _request: Request<Empty>,
-    ) -> Result<Response<AuthStatus>, Status> {
+    async fn is_authenticated(&self, _request: Request<Empty>) -> Result<Response<AuthStatus>, Status> {
         let engine = self.engine.lock().await;
         Ok(Response::new(AuthStatus {
             is_authenticated: engine.is_authenticated(),
         }))
     }
 
-    async fn start_auth_flow(
+    async fn start_initial_auth_flow(
         &self,
         _request: Request<Empty>,
     ) -> Result<Response<AuthUrlResponse>, Status> {
@@ -59,7 +56,7 @@ where
         }
     }
 
-    async fn complete_auth_flow(
+    async fn continue_initial_auth_flow(
         &self,
         _request: Request<Empty>,
     ) -> Result<Response<AuthFlowResult>, Status> {
@@ -103,7 +100,7 @@ mod tests {
 
         // When we call check_authentication
         let request = Request::new(Empty {});
-        let response = handler.check_authentication(request).await.unwrap();
+        let response = handler.is_authenticated(request).await.unwrap();
 
         // Then the handler returns true (because token_store has tokens)
         assert!(response.into_inner().is_authenticated);
@@ -125,7 +122,7 @@ mod tests {
 
         // When we call start_auth_flow
         let request = Request::new(Empty {});
-        let response = handler.start_auth_flow(request).await.unwrap();
+        let response = handler.start_initial_auth_flow(request).await.unwrap();
 
         // Then we get a non-empty auth URL
         assert!(!response.into_inner().auth_url.is_empty());
@@ -146,11 +143,11 @@ mod tests {
         let handler = KdriveServiceHandler::new(engine);
 
         // Start the flow first
-        handler.start_auth_flow(Request::new(Empty {})).await.unwrap();
+        handler.start_initial_auth_flow(Request::new(Empty {})).await.unwrap();
 
         // When we call complete_auth_flow
         let request = Request::new(Empty {});
-        let response = handler.complete_auth_flow(request).await.unwrap();
+        let response = handler.continue_initial_auth_flow(request).await.unwrap();
 
         // Then success is true
         assert!(response.into_inner().success);
@@ -172,7 +169,7 @@ mod tests {
 
         // When we call complete_auth_flow without starting flow
         let request = Request::new(Empty {});
-        let response = handler.complete_auth_flow(request).await;
+        let response = handler.continue_initial_auth_flow(request).await;
 
         // Then we get an error status
         assert!(response.is_err());
