@@ -109,6 +109,10 @@ pub enum AuthFlowError {
     EventBusError(#[from] EventBusError),
     #[error("Configuration error: {0}")]
     ConfigurationError(#[from] ConfigurationError),
+    #[error("No refresh token received")]
+    NoRefreshTokenReceived,
+    #[error("No access token received")]
+    NoAccessTokenReceived,
 }
 
 impl From<oneshot::error::RecvError> for AuthFlowError {

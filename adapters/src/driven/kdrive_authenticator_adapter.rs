@@ -117,13 +117,13 @@ impl AuthenticatorDrivenPort for KDriveAuthenticator {
     async fn get_tokens(&self) -> Result<Tokens, AuthFlowError> {
         let access_token = self.access_token
             .as_ref()
-            .ok_or(AuthFlowError::FlowNotStarted)?
+            .ok_or(AuthFlowError::NoAccessTokenReceived)?
             .secret()
             .clone();
 
         let refresh_token = self.refresh_token
             .as_ref()
-            .ok_or(AuthFlowError::FlowNotStarted)?
+            .ok_or(AuthFlowError::NoRefreshTokenReceived)?
             .secret()
             .clone();
 
