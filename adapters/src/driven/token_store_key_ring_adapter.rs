@@ -20,9 +20,10 @@ impl TokenStoreDrivenPort for TokenStoreKeyRingAdapter {
         let json = match entry.get_password() {
             Ok(json) => json,
             Err(error) => {
-                return Err(
-                    ConfigurationError::CouldNotReadTokensFromKeyring(error.to_string())
-                );
+                if error.to_string().contains("No matching entry") {
+                    return Ok(None);
+                }
+                return Err(ConfigurationError::CouldNotReadTokensFromKeyring(error.to_string()));
             }
         };
 
@@ -46,5 +47,22 @@ impl TokenStoreDrivenPort for TokenStoreKeyRingAdapter {
             .map_err(|e| ConfigurationError::CouldNotSaveTokensToKeyring(e.to_string()))?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn token_store_key_ring_adapter_returns_ok_none_when_entry_not_found() {
+        // Given a KeyRingAdapter
+        let adapter = TokenStoreKeyRingAdapter;
+
+        // When we load tokens (entry doesn't exist)
+        let result = adapter.load();
+
+        // Then we get Ok(None), not an error
+        assert_eq!(result.unwrap(), None);
     }
 }

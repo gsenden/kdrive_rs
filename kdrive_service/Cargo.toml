@@ -18,3 +18,6 @@ const_format = "0.2.35"
 
 [build-dependencies]
 tonic-prost-build = "0.14.2"
+
+[[example]]
+name = "auth_flow"
