@@ -12,7 +12,7 @@ use tonic::transport::Server;
 use std::net::SocketAddr;
 use std::time::Duration;
 use tonic::Request;
-use kdrive_service::default_values::{default_server_addr};
+use kdrive_service::default_values::{default_server_addr, DEFAULT_SERVER_URL};
 use kdrive_service::error::ServerError;
 
 async fn start_test_server(addr: SocketAddr) -> Result<(), ServerError> {
@@ -53,24 +53,7 @@ async fn grpc_client_can_check_authentication_status() {
     tokio::time::sleep(Duration::from_millis(500)).await;
 
     // Wait for the client to connect
-    let mut channel = None;
-    for attempt in 0..30 {
-        match tonic::transport::Channel::from_static("http://127.0.0.1:50051")
-            .connect()
-            .await {
-            Ok(ch) => {
-                println!("Connected on attempt {}", attempt);
-                channel = Some(ch);
-                break;
-            }
-            Err(e) => {
-                println!("Connection attempt {} failed: {:?}", attempt, e);
-                tokio::time::sleep(Duration::from_millis(100)).await;
-            }
-        }
-    }
-
-    let channel = channel.expect("Failed to connect to server");
+    let channel = connect_to_server().await;
 
     // When we create a client and check authentication
     let mut client = KdriveServiceClient::new(channel);
@@ -86,6 +69,72 @@ async fn grpc_client_can_check_authentication_status() {
         Err(e) => {
             panic!("gRPC call failed: {:?}", e);
         }
+    }
+
+    server_handle.abort();
+}
+
+#[tokio::test]
+async fn grpc_client_can_start_auth_flow() {
+    // Given a running gRPC server
+    let server_addr = default_server_addr();
+    let server_handle = tokio::spawn(start_test_server(server_addr));
+    tokio::time::sleep(Duration::from_millis(500)).await;
+
+    // When we connect and start auth flow
+    let channel = connect_to_server().await;
+    let mut client = KdriveServiceClient::new(channel);
+    let response = client.start_auth_flow(Request::new(Empty {})).await;
+
+    // Then we get a non-empty auth URL
+    match response {
+        Ok(resp) => {
+            let url = resp.into_inner().auth_url;
+            assert!(!url.is_empty());
+        }
+        Err(e) => panic!("gRPC call failed: {:?}", e),
+    }
+
+    server_handle.abort();
+}
+
+async fn connect_to_server() -> tonic::transport::Channel {
+    for attempt in 0..30 {
+        match tonic::transport::Channel::from_static(DEFAULT_SERVER_URL)
+            .connect()
+            .await {
+            Ok(ch) => {
+                println!("Connected on attempt {}", attempt);
+                return ch
+            }
+            Err(e) => {
+                println!("Connection attempt {} failed: {:?}", attempt, e);
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+        }
+    }
+    panic!("Failed to connect to server");
+}
+
+#[tokio::test]
+async fn grpc_client_can_complete_auth_flow() {
+    // Given a running gRPC server
+    let server_addr = default_server_addr();
+    let server_handle = tokio::spawn(start_test_server(server_addr));
+    tokio::time::sleep(Duration::from_millis(500)).await;
+
+    // When we connect and complete auth flow
+    let channel = connect_to_server().await;
+    let mut client = KdriveServiceClient::new(channel);
+    let response = client.complete_auth_flow(Request::new(Empty {})).await;
+
+    // Then we get success
+    match response {
+        Ok(resp) => {
+            let result = resp.into_inner();
+            assert!(result.success);
+        }
+        Err(e) => panic!("gRPC call failed: {:?}", e),
     }
 
     server_handle.abort();
