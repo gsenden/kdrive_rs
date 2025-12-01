@@ -105,6 +105,8 @@ pub enum AuthFlowError {
     FlowNotStarted,
     #[error("Failed to exchange code for tokens: {0}")]
     TokenRequestFailed(String),
+    #[error("Event bus error: {0}")]
+    EventBusError(#[from] EventBusError),
 }
 
 impl From<oneshot::error::RecvError> for AuthFlowError {
@@ -125,7 +127,7 @@ impl From<url::ParseError> for AuthError {
     }
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, PartialEq)]
 pub enum EventBusError {
     #[error("Event bus lock poisoned: {0}")]
     LockPoisoned(String),

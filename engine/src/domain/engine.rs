@@ -44,11 +44,11 @@ where
         let result = self.authenticator_driven_port.continue_initial_auth_flow().await;
         match result {
             Ok(result) => {
-                self.event_bus.emit(EngineEvent::AuthFlowCompleted);
+                self.event_bus.emit(EngineEvent::AuthFlowCompleted)?;
                 Ok(result)
             }
             Err(error) => {
-                self.event_bus.emit(EngineEvent::AuthFlowFailed {reason: error.to_string()});
+                self.event_bus.emit(EngineEvent::AuthFlowFailed {reason: error.to_string()})?;
                 Err(error)
             }
         }
