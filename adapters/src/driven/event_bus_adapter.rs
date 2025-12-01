@@ -53,5 +53,36 @@ mod tests {
         assert!(events.contains(&EngineEvent::AuthFlowCompleted));
     }
 
+    #[test]
+    fn event_bus_adapter_handles_concurrent_access() {
+        // Given an EventBusAdapter
+        let adapter = EventBusAdapter::new();
+
+        // When multiple threads try to emit events concurrently
+        let mut handles = vec![];
+        for i in 0..10 {
+            let adapter_clone = adapter.clone();
+            let handle = std::thread::spawn(move || {
+                let event = if i % 2 == 0 {
+                    EngineEvent::AuthFlowCompleted
+                } else {
+                    EngineEvent::AuthFlowFailed {
+                        reason: format!("error {}", i)
+                    }
+                };
+                adapter_clone.emit(event).unwrap();
+            });
+            handles.push(handle);
+        }
+
+        for handle in handles {
+            handle.join().unwrap();
+        }
+
+        // Then all events are stored safely
+        let events = adapter.get_events();
+        assert_eq!(events.len(), 10);
+    }
+
 
 }
