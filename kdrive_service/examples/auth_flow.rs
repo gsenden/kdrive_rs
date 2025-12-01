@@ -2,12 +2,13 @@ use kdrive_service::kdrive::kdrive_service_client::KdriveServiceClient;
 use kdrive_service::kdrive::Empty;
 use std::io;
 use tonic::Request;
+use kdrive_service::default_values::DEFAULT_SERVER_URL;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Connecting to gRPC server...");
 
-    let channel = tonic::transport::Channel::from_static("http://127.0.0.1:50051")
+    let channel = tonic::transport::Channel::from_static(DEFAULT_SERVER_URL)
         .connect()
         .await?;
 

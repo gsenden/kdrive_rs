@@ -1,0 +1,10 @@
+#!/bin/bash
+
+export CLIENT_ID="the client id from infomaniak"
+export AUTH_URL="https://login.infomaniak.com/authorize"
+export TOKEN_URL="https://login.infomaniak.com/token"
+export REDIRECT_URL="http://127.0.0.1:13628/kdrive/auth" # Configure this url as redirect url at infomaniak
+
+cargo run -p kdrive_service &
+sleep 2
+cargo run -p kdrive_service --example auth_flow

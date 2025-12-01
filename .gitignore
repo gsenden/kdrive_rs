@@ -20,3 +20,5 @@ Cargo.lock
 **/bruno/
 
 **/txt_export/
+
+start_test_server.sh
