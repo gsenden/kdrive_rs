@@ -50,6 +50,7 @@ impl AuthenticatorDrivenPort for KDriveAuthenticator {
         let (auth_url, csrf_token) = self.client
             .authorize_url(CsrfToken::new_random)
             .add_scope(Scope::new("openid".to_string()))
+            .add_extra_param("access_type", "offline")
             .set_pkce_challenge(pkce_challenge)
             .url();
 
