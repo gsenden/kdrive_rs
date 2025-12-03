@@ -1,13 +1,19 @@
 [package]
 name = "kdrive_desktop"
 version = "0.1.0"
-authors = ["gsenden <ger@senden.dev>"]
-edition = "2021"
+authors = ["Ger Senden"]
+edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dioxus = { version = "0.6.0", features = ["router"] }
+dioxus = { version = "0.7.1", features = ["router"] }
+tonic = "0.14.2"
+prost = "0.14.1"
+tonic-prost = "0.14.2"
+
+[build-dependencies]
+tonic-prost-build = "0.14.2"
 
 [features]
 default = ["desktop"]
