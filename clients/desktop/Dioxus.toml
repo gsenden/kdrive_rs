@@ -1,12 +1,21 @@
 [application]
-name = "frontend-ui"
-default_platform = "web"
-out_dir = "dist"
-asset_dir = "assets"
 
 [web.app]
-title = "Tauri + Dioxus App"
 
-[web.watcher]
-reload_html = true
-watch_path = ["src", "assets"]
+# HTML title tag content
+title = "kdrive_desktop"
+
+# include `assets` in web platform
+[web.resource]
+
+# Additional CSS style files
+style = []
+
+# Additional JavaScript files
+script = []
+
+[web.resource.dev]
+
+# Javascript code file
+# serve: [dev-server] only
+script = []
