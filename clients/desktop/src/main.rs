@@ -10,6 +10,7 @@ mod components;
 mod views;
 
 mod ports;
+mod domain;
 
 pub mod kdrive {
     tonic::include_proto!("kdrive");
