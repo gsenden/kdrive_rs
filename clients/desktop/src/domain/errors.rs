@@ -7,7 +7,4 @@ pub enum ClientError {
 
     #[error("Server error: {0}")]
     ServerError(String),
-
-    #[error("Authentication failed: {0}")]
-    AuthenticationFailed(String),
 }

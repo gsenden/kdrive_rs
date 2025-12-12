@@ -12,8 +12,8 @@ use tonic::transport::Server;
 use std::net::SocketAddr;
 use std::time::Duration;
 use tonic::Request;
-use kdrive_service::default_values::{default_server_addr, DEFAULT_SERVER_URL};
 use kdrive_service::error::ServerError;
+use common::{default_server_addr, DEFAULT_SERVER_URL};
 
 async fn start_test_server(addr: SocketAddr) -> Result<(), ServerError> {
     println!("test server: creating fake engine");

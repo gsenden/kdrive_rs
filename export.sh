@@ -17,7 +17,7 @@ find . \( -name "Cargo.toml" -o -name "package.json" -o -name "tsconfig.json" \)
     echo -e "\n" >> "$OUTPUT"
 done
 
-find . \( -name "*.rs" -o -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.vue" -o -name "*.svelte" -o -name "*.html" -o -name "*.css" \) \
+find . \( -name "*.rs" -o -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.jsx" -o -name "*.vue" -o -name "*.svelte" -o -name "*.html" -o -name "*.css" -o -name "*.proto" \) \
     -not -path "*/target/*" \
     -not -path "*/node_modules/*" \
     -not -path "./export/*" | sort | while read -r file; do

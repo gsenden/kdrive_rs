@@ -1,10 +1,20 @@
+use crate::domain::errors::ClientError;
 use crate::domain::view::View;
 use crate::ports::driven::server_driven_port::ServerDrivenPort;
 
-
+#[derive(PartialEq, Clone)]
 pub struct Client<ServerPort>
 where ServerPort: ServerDrivenPort {
     server_driven_port: ServerPort,
+}
+
+impl<ServerPort> Client<ServerPort>
+where
+    ServerPort: ServerDrivenPort
+{
+    pub(crate) async fn on_login_view_shown(&self) -> Result<String, ClientError> {
+       self.server_driven_port.start_initial_auth_flow().await
+    }
 }
 
 impl<ServerPort> Client<ServerPort>
@@ -27,9 +37,8 @@ where ServerPort: ServerDrivenPort {
 mod tests {
     use crate::domain::client::Client;
     use crate::domain::errors::ClientError;
-    use crate::domain::test_helpers::fake_server_adapter::FakeServerAdapter;
+    use crate::domain::test_helpers::fake_server_adapter::{FakeServerAdapter, TEST_URL_RESPONSE};
     use crate::domain::view::View;
-    use crate::Route::Home;
 
     #[tokio::test]
     async fn if_the_server_is_authenticated_then_the_home_page_is_shown() {
@@ -70,6 +79,19 @@ mod tests {
 
         // Then the returned view is the Home View
         assert_eq!(view, View::Error(error.clone()));
+    }
+
+    #[tokio::test]
+    async fn client_starts_authentication_on_login_view_shown_and_returns_auth_url() {
+        // Given a client
+        let server_adapter = FakeServerAdapter::new(false);
+        let client = Client::new(server_adapter);
+
+        // When the client is notified that the login view is shown
+        let url = client.on_login_view_shown().await.unwrap();
+
+        // Then the url is returned
+        assert_eq!(url, TEST_URL_RESPONSE);
     }
 }
 

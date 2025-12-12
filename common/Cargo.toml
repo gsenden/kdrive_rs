@@ -1,0 +1,8 @@
+[package]
+name = "common"
+version = "0.1.0"
+authors = ["Ger Senden"]
+edition = "2024"
+
+[dependencies]
+const_format = "0.2.35"

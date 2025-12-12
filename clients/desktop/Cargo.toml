@@ -7,6 +7,7 @@ edition = "2024"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+common = { path = "../../common" }
 dioxus = { version = "0.7.1", features = ["router"] }
 tonic = "0.14.2"
 prost = "0.14.1"
@@ -14,8 +15,12 @@ tonic-prost = "0.14.2"
 thiserror = "2.0.17"
 tokio = "1.48.0"
 
+[dev-dependencies]
+dioxus-ssr = "0.7.2"
+
 [build-dependencies]
 tonic-prost-build = "0.14.2"
+dioxus-ssr = "0.7.2"
 
 [features]
 default = ["desktop"]

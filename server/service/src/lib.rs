@@ -5,7 +5,7 @@ pub mod kdrive {
 
 pub mod grpc_handler;
 pub mod error;
-pub mod default_values;
+pub use common as default_values;
 
 use tonic::transport::Server;
 use kdrive::kdrive_service_server::KdriveServiceServer;
