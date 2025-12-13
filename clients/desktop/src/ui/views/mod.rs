@@ -18,6 +18,5 @@ mod navbar;
 pub use navbar::Navbar;
 
 mod login;
-pub mod text;
 
 pub use login::Login;

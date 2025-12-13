@@ -554,8 +554,8 @@ video {
   display: none;
 }
 
-.relative {
-  position: relative;
+.static {
+  position: static;
 }
 
 .block {

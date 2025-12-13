@@ -21,4 +21,4 @@ Cargo.lock
 
 **/txt_export/
 
-start_test_server.sh
+server/start_test_server.sh

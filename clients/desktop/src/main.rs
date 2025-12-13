@@ -1,14 +1,13 @@
 use dioxus::prelude::*;
-use views::{Blog, Home, Navbar, Login};
+use ui::views::{Blog, Home, Login, Navbar};
 use domain::client::Client;
 use adapters::grpc_server_adapter::GrpcServerAdapter;
 use crate::domain::view::View;
 
 mod adapters;
-mod components;
 mod domain;
 mod ports;
-mod views;
+mod ui;
 
 pub mod kdrive {
     tonic::include_proto!("kdrive");
