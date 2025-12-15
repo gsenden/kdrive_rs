@@ -1,7 +1,7 @@
 use crate::domain::configuration::Configuration;
-use crate::domain::errors::ConfigurationError;
+use crate::domain::errors::ServerError;
 
 pub trait ConfiguratorPort {
-    fn load(&self) -> Result<Configuration, ConfigurationError>;
+    fn load(&self) -> Result<Configuration, ServerError>;
 
 }

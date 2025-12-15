@@ -13,7 +13,7 @@ use tokio::task::JoinHandle;
 use tokio::time::Instant;
 use engine::domain::callback_endpoint::{CallbackEndpoint, ParseRedirectUrl};
 use engine::domain::configuration::Configuration;
-use engine::domain::errors::AuthFlowError;
+use engine::domain::errors::ServerError;
 use engine::domain::tokens::Tokens;
 use engine::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 
@@ -34,7 +34,7 @@ pub struct KDriveAuthenticator {
     csrf_token: Option<CsrfToken>,
 
     server_handle: Option<JoinHandle<()>>,
-    code_rx: Option<oneshot::Receiver<Result<String,AuthFlowError>>>,
+    code_rx: Option<oneshot::Receiver<Result<String,ServerError>>>,
     access_token: Option<AccessToken>,
     refresh_token: Option<RefreshToken>,
     access_token_expiry: Option<Instant>,
@@ -45,7 +45,7 @@ pub struct KDriveAuthenticator {
 #[async_trait]
 impl AuthenticatorDrivenPort for KDriveAuthenticator {
 
-    async fn start_initial_auth_flow(&mut self) -> Result<String, AuthFlowError> {
+    async fn start_initial_auth_flow(&mut self) -> Result<String, ServerError> {
         let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
         let (auth_url, csrf_token) = self.client
             .authorize_url(CsrfToken::new_random)
@@ -58,7 +58,7 @@ impl AuthenticatorDrivenPort for KDriveAuthenticator {
         self.csrf_token = Some(csrf_token);
 
         let callback_endpoint = self.redirect_url.parse()?;
-        let (code_tx, code_rx) = oneshot::channel::<Result<String, AuthFlowError>>();
+        let (code_tx, code_rx) = oneshot::channel::<Result<String, ServerError>>();
         //let (error_tx, error_rx) = tokio::sync::mpsc::channel::<AuthFlowError>(1);
         let shared_sender = Arc::new(Mutex::new(Some(code_tx)));
 
@@ -71,22 +71,22 @@ impl AuthenticatorDrivenPort for KDriveAuthenticator {
         Ok(auth_url.to_string())
     }
 
-    async fn continue_initial_auth_flow(&mut self) -> Result<bool, AuthFlowError> {
+    async fn continue_initial_auth_flow(&mut self) -> Result<bool, ServerError> {
         let pkce_verifier = match self.pkce_verifier.take() {
             Some(v) => v,
-            None => return Err(AuthFlowError::FlowNotStarted),
+            None => return Err(ServerError::FlowNotStarted),
         };
 
         let receiver = match self.code_rx.take() {
             Some(rx) => rx,
-            None => return Err(AuthFlowError::FlowNotStarted),
+            None => return Err(ServerError::FlowNotStarted),
         };
 
         // Wait for the auth code to arrive
         let code = match receiver.await {
             Ok(Ok(code)) => code,
             Ok(Err(e)) => return Err(e),
-            Err(_) => return Err(AuthFlowError::CallbackClosedUnexpectedly),
+            Err(e) => return Err(e.into()),
         };
 
         // Close the callback server
@@ -102,7 +102,7 @@ impl AuthenticatorDrivenPort for KDriveAuthenticator {
             .set_pkce_verifier(pkce_verifier)
             .request_async(&http_client)
             .await
-            .map_err(|e| AuthFlowError::TokenRequestFailed(e.to_string()))?;
+            .map_err(|e| ServerError::TokenRequestFailed(e.to_string()))?;
 
         // Access token should be requested by calling get_access_token()
         self.access_token = Some(token_result.access_token().clone());
@@ -114,16 +114,16 @@ impl AuthenticatorDrivenPort for KDriveAuthenticator {
         Ok(true)
     }
 
-    async fn get_tokens(&self) -> Result<Tokens, AuthFlowError> {
+    async fn get_tokens(&self) -> Result<Tokens, ServerError> {
         let access_token = self.access_token
             .as_ref()
-            .ok_or(AuthFlowError::NoAccessTokenReceived)?
+            .ok_or(ServerError::NoAccessTokenReceived)?
             .secret()
             .clone();
 
         let refresh_token = self.refresh_token
             .as_ref()
-            .ok_or(AuthFlowError::NoRefreshTokenReceived)?
+            .ok_or(ServerError::NoRefreshTokenReceived)?
             .secret()
             .clone();
 
@@ -157,7 +157,7 @@ impl KDriveAuthenticator {
         }
     }
 
-    pub async fn get_access_token(&mut self) -> Result<AccessToken, AuthFlowError> {
+    pub async fn get_access_token(&mut self) -> Result<AccessToken, ServerError> {
         if let (Some(token), Some(expiry)) =
             (&self.access_token, &self.access_token_expiry)
         {
@@ -168,7 +168,7 @@ impl KDriveAuthenticator {
 
         let refresh_token = match &self.refresh_token {
             Some(rt) => rt,
-            None => return Err(AuthFlowError::FlowNotStarted),
+            None => return Err(ServerError::FlowNotStarted),
         };
 
         let http_client = reqwest::Client::new();
@@ -177,7 +177,7 @@ impl KDriveAuthenticator {
             .exchange_refresh_token(refresh_token)
             .request_async(&http_client)
             .await
-            .map_err(|e| AuthFlowError::TokenRequestFailed(e.to_string()))?;
+            .map_err(|e| ServerError::TokenRequestFailed(e.to_string()))?;
 
         self.access_token = Some(token_result.access_token().clone());
         if let Some(rt) = token_result.refresh_token() {
@@ -196,7 +196,7 @@ impl KDriveAuthenticator {
     fn create_router(
         &self,
         path: &str,
-        sender: Arc<Mutex<Option<oneshot::Sender<Result<String, AuthFlowError>>>>>
+        sender: Arc<Mutex<Option<oneshot::Sender<Result<String, ServerError>>>>>
     ) -> Router {
 
         Router::new().route(
@@ -219,7 +219,7 @@ impl KDriveAuthenticator {
         )
     }
 
-    fn handle_oauth_params(params: &HashMap<String, String>) -> (StatusCode, &'static str, Result<String, AuthFlowError>) {
+    fn handle_oauth_params(params: &HashMap<String, String>) -> (StatusCode, &'static str, Result<String, ServerError>) {
         match (params.get("code"), params.get("error")) {
             (Some(code), _) => (
                 StatusCode::OK,
@@ -229,12 +229,12 @@ impl KDriveAuthenticator {
             (None, Some(error)) => (
                 StatusCode::BAD_REQUEST,
                 include_str!("templates/oauth_configuration_error.html"),
-                Err(AuthFlowError::OAuthReturnedError(error.clone())),
+                Err(ServerError::OAuthReturnedError(error.clone())),
             ),
             (None, None) => (
                 StatusCode::BAD_REQUEST,
                 include_str!("templates/no_oauth_code_error.html"),
-                Err(AuthFlowError::MissingAuthorizationCode),
+                Err(ServerError::MissingAuthorizationCode),
             ),
         }
     }

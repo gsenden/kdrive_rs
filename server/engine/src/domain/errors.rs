@@ -2,16 +2,20 @@ use thiserror::Error;
 use tokio::sync::oneshot;
 
 #[derive(Debug, Error)]
-pub enum AppError {
-    #[error("Config error: {0}")]
-    Configuration(#[from] ConfigurationError),
+pub enum ServerError {
+     // ────────────── PARSING / EXTERNAL ──────────────
 
-    #[error("Auth error: {0}")]
-    Auth(#[from] AuthFlowError),
-}
+    #[error("Invalid URL: {0}")]
+    UrlParse(#[from] url::ParseError),
 
-#[derive(Debug, Error, PartialEq)]
-pub enum ConfigurationError {
+    #[error("Callback channel closed unexpectedly")]
+    CallbackRecv(#[from] oneshot::error::RecvError),
+
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
+
+    // ────────────── DOMAIN ERRORS (PLAT) ──────────────
+
     #[error("Missing API URL environment variable")]
     MissingApiUrlEnvVar,
 
@@ -30,12 +34,9 @@ pub enum ConfigurationError {
     #[error("Missing token URL environment variable")]
     MissingTokenUrlEnvVar,
 
-    #[error("Invalid URL: {0}")]
-    ParseError(String),
-
     #[error("Missing redirect URL environment variable")]
     MissingRedirectUrlEnvVar,
-    
+
     #[error("Environment variable CLIENT_ID needs to be set during build time")]
     MissingClientIDEnvVarDuringBuild,
 
@@ -77,64 +78,34 @@ pub enum ConfigurationError {
 
     #[error("Could not find tokens in preferred store")]
     NoTokensFoundInStore,
-}
 
-impl From<url::ParseError> for ConfigurationError {
-    fn from(err: url::ParseError) -> Self {
-        ConfigurationError::ParseError(err.to_string())
-    }
-}
-
-#[derive(Debug, Error, PartialEq)]
-pub enum AuthFlowError {
     #[error("Invalid redirect URL: {0}")]
     InvalidRedirectUrl(String),
+
     #[error("Missing redirect URL in the client")]
     MissingRedirectUrl,
+
     #[error("Failed to start callback server: {0}")]
     ServerFailed(String),
-    #[error("Callback channel closed unexpectedly")]
-    CallbackClosedUnexpectedly,
+
     #[error("OAuth returned error: {0}")]
     OAuthReturnedError(String),
+
     #[error("Missing authorization code")]
     MissingAuthorizationCode,
+
     #[error("Server failed to signal ready state")]
     ServerFailedToSignalReadyState,
+
     #[error("Flow not started")]
     FlowNotStarted,
+
     #[error("Failed to exchange code for tokens: {0}")]
     TokenRequestFailed(String),
-    #[error("Event bus error: {0}")]
-    EventBusError(#[from] EventBusError),
-    #[error("Configuration error: {0}")]
-    ConfigurationError(#[from] ConfigurationError),
+
     #[error("No refresh token received")]
     NoRefreshTokenReceived,
+
     #[error("No access token received")]
     NoAccessTokenReceived,
-}
-
-impl From<oneshot::error::RecvError> for AuthFlowError {
-    fn from(_: oneshot::error::RecvError) -> Self {
-        AuthFlowError::ServerFailedToSignalReadyState
-    }
-}
-
-#[derive(Debug, Error, PartialEq)]
-pub enum AuthError {
-    #[error("Invalid URL: {0}")]
-    UrlParseError(String),
-}
-
-impl From<url::ParseError> for AuthError {
-    fn from(err: url::ParseError) -> Self {
-        AuthError::UrlParseError(err.to_string())
-    }
-}
-
-#[derive(Debug, Error, PartialEq)]
-pub enum EventBusError {
-    #[error("Event bus lock poisoned: {0}")]
-    LockPoisoned(String),
 }

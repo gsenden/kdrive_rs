@@ -2,8 +2,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum ServerError {
-    #[error("Configuration error: {0}")]
-    Configuration(#[from] engine::domain::errors::ConfigurationError),
+    #[error(transparent)]
+    Domain(#[from] engine::domain::errors::ServerError),
 
     #[error("gRPC transport error: {0}")]
     Transport(#[from] tonic::transport::Error),

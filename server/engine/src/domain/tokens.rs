@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use crate::domain::errors::ConfigurationError;
+use crate::domain::errors::ServerError;
 use crate::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
 use crate::ports::driving::token_store_driving_port::TokenStoreDrivingPort;
 
@@ -24,14 +24,14 @@ impl<TRP: TokenStoreDrivenPort, TFP: TokenStoreDrivenPort> TokenStoreDrivenPort 
         }
     }
 
-    fn load(&self) -> Result<Option<Tokens>, ConfigurationError> {
+    fn load(&self) -> Result<Option<Tokens>, ServerError> {
         match self {
             ActivePort::KeyRing(p) => p.load(),
             ActivePort::File(p) => p.load(),
         }
     }
 
-    fn save(&self, tokens: &Tokens) -> Result<(), ConfigurationError> {
+    fn save(&self, tokens: &Tokens) -> Result<(), ServerError> {
         match self {
             ActivePort::KeyRing(p) => p.save(tokens),
             ActivePort::File(p) => p.save(tokens),
@@ -54,20 +54,20 @@ impl <TRP: TokenStoreDrivenPort, TFP: TokenStoreDrivenPort>TokenStore<TRP, TFP> 
         tokens: Tokens,
         key_ring_store: Option<TRP>,
         file_store: Option<TFP>
-    ) -> Result<Self, ConfigurationError> {
+    ) -> Result<Self, ServerError> {
         let port = TokenStore::choose_port(key_ring_store, file_store)?;
         Ok(TokenStore {tokens: Some(tokens), port})
     }
 
     pub fn load(key_ring_store: Option<TRP>,
-                file_store: Option<TFP>) -> Result<Self, ConfigurationError> {
+                file_store: Option<TFP>) -> Result<Self, ServerError> {
         let port = TokenStore::choose_port(key_ring_store, file_store)?;
         let tokens = port.load()?;
         Ok(TokenStore {tokens, port})
     }
 
     fn choose_port(key_ring_store: Option<TRP>,   file_store: Option<TFP>)
-                   -> Result<ActivePort<TRP, TFP>, ConfigurationError>
+                   -> Result<ActivePort<TRP, TFP>, ServerError>
     {
         if let Some(key_ring_store) = key_ring_store {
             if key_ring_store.is_available() {
@@ -81,7 +81,7 @@ impl <TRP: TokenStoreDrivenPort, TFP: TokenStoreDrivenPort>TokenStore<TRP, TFP> 
             }
         }
 
-        Err(ConfigurationError::MissingStorePort)
+        Err(ServerError::MissingStorePort)
     }
 }
 
@@ -114,7 +114,7 @@ for TokenStore<TRP, TFP>
         }
     }
 
-    fn save_tokens(&mut self, tokens: &Tokens) -> Result<(), ConfigurationError> {
+    fn save_tokens(&mut self, tokens: &Tokens) -> Result<(), ServerError> {
         self.port.save(tokens)?;
         self.tokens = Some(tokens.clone());
         Ok(())

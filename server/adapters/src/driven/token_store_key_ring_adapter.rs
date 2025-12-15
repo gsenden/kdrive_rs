@@ -1,5 +1,5 @@
 use engine::domain::default_values::general_defaults::*;
-use engine::domain::errors::ConfigurationError;
+use engine::domain::errors::ServerError;
 use engine::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
 use serde::{Deserialize, Serialize};
 use keyring::Entry;
@@ -13,9 +13,9 @@ impl TokenStoreDrivenPort for TokenStoreKeyRingAdapter {
         Entry::new(KEYRING_SERVICE, KEYRING_USER).is_ok()
     }
 
-    fn load(&self) -> Result<Option<Tokens>, ConfigurationError> {
+    fn load(&self) -> Result<Option<Tokens>, ServerError> {
         let entry = Entry::new(KEYRING_SERVICE, KEYRING_USER)
-            .map_err(|e| ConfigurationError::CouldNotAccessKeyring(e.to_string()))?;
+            .map_err(|e| ServerError::CouldNotAccessKeyring(e.to_string()))?;
 
         let json = match entry.get_password() {
             Ok(json) => json,
@@ -23,28 +23,28 @@ impl TokenStoreDrivenPort for TokenStoreKeyRingAdapter {
                 if error.to_string().contains("No matching entry") {
                     return Ok(None);
                 }
-                return Err(ConfigurationError::CouldNotReadTokensFromKeyring(error.to_string()));
+                return Err(ServerError::CouldNotReadTokensFromKeyring(error.to_string()));
             }
         };
 
         let tokens: Tokens = serde_json::from_str(&json).map_err(|e| {
-            ConfigurationError::CouldNotParseJson(e.to_string())
+            ServerError::CouldNotParseJson(e.to_string())
         })?;
 
         Ok(Some(tokens))
     }
 
-    fn save(&self, tokens: &Tokens) -> Result<(), ConfigurationError> {
+    fn save(&self, tokens: &Tokens) -> Result<(), ServerError> {
         let entry = Entry::new(KEYRING_SERVICE, KEYRING_USER)
-            .map_err(|e| ConfigurationError::CouldNotAccessKeyring(e.to_string()))?;
+            .map_err(|e| ServerError::CouldNotAccessKeyring(e.to_string()))?;
 
         let json = serde_json::to_string(tokens).map_err(|e| {
-            ConfigurationError::CouldNotSerializeTokens(e.to_string())
+            ServerError::CouldNotSerializeTokens(e.to_string())
         })?;
 
         entry
             .set_password(&json)
-            .map_err(|e| ConfigurationError::CouldNotSaveTokensToKeyring(e.to_string()))?;
+            .map_err(|e| ServerError::CouldNotSaveTokensToKeyring(e.to_string()))?;
 
         Ok(())
     }

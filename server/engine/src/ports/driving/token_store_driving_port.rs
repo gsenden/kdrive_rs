@@ -1,4 +1,4 @@
-use crate::domain::errors::ConfigurationError;
+use crate::domain::errors::ServerError;
 use crate::domain::tokens::Tokens;
 
 pub trait TokenStoreDrivingPort {
@@ -6,5 +6,5 @@ pub trait TokenStoreDrivingPort {
     fn access_token(&self) -> Option<&str>;
     fn refresh_token(&self) -> Option<&str>;
     fn expires_at(&self) -> Option<i64>;
-    fn save_tokens(&mut self, tokens: &Tokens) -> Result<(), ConfigurationError>;
+    fn save_tokens(&mut self, tokens: &Tokens) -> Result<(), ServerError>;
 }

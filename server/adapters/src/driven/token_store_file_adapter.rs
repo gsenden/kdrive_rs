@@ -1,4 +1,4 @@
-use engine::domain::errors::ConfigurationError;
+use engine::domain::errors::ServerError;
 use engine::domain::default_values::general_defaults::*;
 use engine::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,7 @@ impl TokenStoreDrivenPort for TokenStoreFileAdapter {
         tokens_file_path().is_ok()
     }
 
-    fn load(&self) -> Result<Option<Tokens>, ConfigurationError>
+    fn load(&self) -> Result<Option<Tokens>, ServerError>
     {
         let path = tokens_file_path()?;
         let data = match fs::read_to_string(&path) {
@@ -25,23 +25,23 @@ impl TokenStoreDrivenPort for TokenStoreFileAdapter {
                 return Ok(None);
             }
             Err(e) => {
-                return Err(ConfigurationError::CouldNotReadTokensFromFile(
+                return Err(ServerError::CouldNotReadTokensFromFile(
                     e.to_string(),
                 ));
             }
         };
 
         let tokens: Tokens = serde_json::from_str(&data).map_err(|e| {
-            ConfigurationError::CouldNotParseJson(e.to_string())
+            ServerError::CouldNotParseJson(e.to_string())
         })?;
 
         Ok(Some(tokens))
     }
 
-    fn save(&self, tokens: &Tokens) -> Result<(), ConfigurationError> {
+    fn save(&self, tokens: &Tokens) -> Result<(), ServerError> {
         let path = tokens_file_path()?;
         let json = serde_json::to_string_pretty(tokens).map_err(|e| {
-            ConfigurationError::CouldNotSerializeTokens(e.to_string())
+            ServerError::CouldNotSerializeTokens(e.to_string())
         })?;
 
         #[cfg(unix)]
@@ -55,18 +55,18 @@ impl TokenStoreDrivenPort for TokenStoreFileAdapter {
                 .mode(0o600)
                 .open(&path)
                 .map_err(|e| {
-                    ConfigurationError::CouldNotOpenTokenFile(e.to_string())
+                    ServerError::CouldNotOpenTokenFile(e.to_string())
                 })?;
 
             file.write_all(json.as_bytes()).map_err(|e| {
-                ConfigurationError::CouldNotSaveTokenFile(e.to_string())
+                ServerError::CouldNotSaveTokenFile(e.to_string())
             })?;
         }
 
         #[cfg(not(unix))]
         {
             fs::write(&path, json).map_err(|e| {
-                ConfigurationError::CouldNotSaveTokenFile(e.to_string())
+                ServerError::CouldNotSaveTokenFile(e.to_string())
             })?;
         }
 
@@ -74,13 +74,13 @@ impl TokenStoreDrivenPort for TokenStoreFileAdapter {
     }
 }
 
-fn tokens_file_path() -> Result<PathBuf, ConfigurationError> {
+fn tokens_file_path() -> Result<PathBuf, ServerError> {
     let mut path = config_dir()
-        .ok_or_else(|| ConfigurationError::NoConfigFolderFound)?;
+        .ok_or_else(|| ServerError::NoConfigFolderFound)?;
 
     path.push(APPLICATION_NAME);
     fs::create_dir_all(&path)
-        .map_err(|e| ConfigurationError::CouldNotCreateFolder(e.to_string()))?;
+        .map_err(|e| ServerError::CouldNotCreateFolder(e.to_string()))?;
 
     path.push(TOKEN_FILE_NAME);
     Ok(path)

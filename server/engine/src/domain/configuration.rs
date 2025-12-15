@@ -1,6 +1,6 @@
 use oauth2::{AuthUrl, ClientId, RedirectUrl, TokenUrl};
 use crate::domain::default_values::configurator_defaults::{DEFAULT_CLIENT_ID};
-use crate::domain::errors::ConfigurationError;
+use crate::domain::errors::ServerError;
 use crate::ports::driven::configurator_driven_port::ConfiguratorPort;
 
 #[derive(Debug, Clone)]
@@ -17,11 +17,11 @@ pub struct Configurator {
 }
 
 impl Configurator {
-    pub fn load<P: ConfiguratorPort>(port: &P) -> Result<Self, ConfigurationError> {
+    pub fn load<P: ConfiguratorPort>(port: &P) -> Result<Self, ServerError> {
         let config = port.load()?;
 
         if config.client_id.as_str() == DEFAULT_CLIENT_ID {
-            return Err(ConfigurationError::MissingClientIDEnvVarDuringBuild);
+            return Err(ServerError::MissingClientIDEnvVarDuringBuild);
         }
 
         Ok(Configurator { config })

@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use engine::domain::errors::EventBusError;
+use engine::domain::errors::ServerError;
 use engine::domain::events::EngineEvent;
 use engine::ports::driven::event_bus_driven_port::EventBusDrivenPort;
 
@@ -24,10 +24,13 @@ impl EventBusAdapter {
 }
 
 impl EventBusDrivenPort for EventBusAdapter {
-    fn emit(&self, event: EngineEvent) -> Result<(), EventBusError> {
+    fn emit(&self, event: EngineEvent) -> Result<(), ServerError> {
         self.events
             .lock()
-            .map_err(|e| EventBusError::LockPoisoned(e.to_string()))?
+            .map_err(|e| ServerError::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                e.to_string(),
+            )))?
             .push(event);
         Ok(())
     }
