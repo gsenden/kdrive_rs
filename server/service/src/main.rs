@@ -1,4 +1,4 @@
-use kdrive_service::default_values::default_server_addr;
+use common::domain::defaults::default_server_addr;
 use kdrive_service::error::ServerError;
 use kdrive_service::start_server;
 

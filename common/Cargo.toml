@@ -6,3 +6,10 @@ edition = "2024"
 
 [dependencies]
 const_format = "0.2.35"
+i18n-embed = { version = "0.16.0"  , features = ["fluent-system", "desktop-requester"]}
+rust-embed = "8.9.0"
+unic-langid = { version = "0.9.6", features = ["unic-langid-macros"] }
+strum = "0.27.2"
+strum_macros = "0.27.2"
+i18n-embed-fl = "0.10.0"
+thiserror = "2.0.17"

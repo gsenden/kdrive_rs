@@ -1,5 +1,5 @@
 use std::future::Future;
-use common::DEFAULT_SERVER_URL;
+use common::domain::defaults::DEFAULT_SERVER_URL;
 use tonic::transport::Channel;
 
 use crate::domain::errors::ClientError;
