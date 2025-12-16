@@ -77,9 +77,9 @@ mod tests {
 
         let result = Configurator::load(&port);
 
-        assert_eq!(
+        assert!(matches!(
             result.unwrap_err(),
-            ConfigurationError::MissingClientIDEnvVarDuringBuild
-        );
+            ServerError::MissingClientIDEnvVarDuringBuild
+        ));
     }
 }

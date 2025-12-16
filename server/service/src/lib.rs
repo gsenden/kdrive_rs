@@ -20,6 +20,8 @@ use adapters::driven::token_store_key_ring_adapter::TokenStoreKeyRingAdapter;
 use engine::domain::tokens::TokenStore;
 use engine::ports::driven::configurator_driven_port::ConfiguratorPort;
 use crate::error::ServerError;
+use common::ports::i18n_driven_port::I18nDrivenPort;
+use common::adapters::i18n_embedded_adapter::I18nEmbeddedFtlAdapter;
 
 pub async fn start_server(addr: SocketAddr) -> Result<(), ServerError> {
     println!("kdrive_service starting on {:?}", addr);
@@ -29,7 +31,9 @@ pub async fn start_server(addr: SocketAddr) -> Result<(), ServerError> {
     let token_store =
         TokenStore::load(Some(TokenStoreKeyRingAdapter), Some(TokenStoreFileAdapter))?;
     let event_bus = EventBusAdapter::new();
-    let engine = Engine::new(authenticator, token_store, event_bus);
+    let i18n_adapter = I18nEmbeddedFtlAdapter::load()
+        .map_err(engine::domain::errors::ServerError::from)?;
+    let engine = Engine::new(authenticator, token_store, event_bus, i18n_adapter);
     let handler = KdriveServiceHandler::new(engine);
 
     Server::builder()

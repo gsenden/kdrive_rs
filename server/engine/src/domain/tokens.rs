@@ -123,7 +123,7 @@ for TokenStore<TRP, TFP>
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::errors::ConfigurationError;
+    use crate::domain::errors::ServerError;
     use crate::domain::test_helpers::fake_token_store_adapter::*;
     use crate::domain::test_helpers::test_store::TestStore;
     use crate::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
@@ -162,10 +162,7 @@ mod tests {
 
         let store_result = TestStore::new(tokens, None, None);
 
-        assert_eq!(
-            store_result.unwrap_err(),
-            ConfigurationError::MissingStorePort
-        );
+        assert!(matches!(store_result, Err(ServerError::MissingStorePort)));
     }
 
     // access_token

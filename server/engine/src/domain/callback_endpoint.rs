@@ -1,7 +1,8 @@
 use std::net::SocketAddr;
 use oauth2::RedirectUrl;
 use url::Url;
-use crate::domain::errors::ServerError;
+use crate::domain::errors::*;
+use crate::error;
 
 pub struct CallbackEndpoint {
     pub addr: SocketAddr,
@@ -12,8 +13,12 @@ pub trait ParseRedirectUrl {
 }
 impl ParseRedirectUrl for RedirectUrl {
     fn parse(&self) -> Result<CallbackEndpoint, ServerError> {
+
+
+
         let parsed = Url::parse(self.as_str())
-            .map_err(|err| ServerError::InvalidRedirectUrl(err.to_string()))?;
+            .map_err(|_| error!(InvalidRedirectUrl, Url => self.as_str()))?;
+
 
         let host = parsed.host_str().unwrap_or("127.0.0.1");
         let port = parsed.port().unwrap_or(80);

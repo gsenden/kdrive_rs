@@ -7,13 +7,14 @@ use crate::domain::errors::CommonError;
 use crate::domain::language::Language;
 use crate::domain::text_keys::TextKeys;
 use crate::ports::i18n_driven_port::I18nDrivenPort;
+use fluent_bundle::{FluentArgs, FluentValue};
 
 #[derive(RustEmbed)]
 #[folder = "i18n"]
 struct Localizations;
 
 pub struct I18nEmbeddedFtlAdapter {
-    default_language: Language,
+    selected_language: Language,
     loaders: HashMap<Language, FluentLanguageLoader>
 }
 
@@ -53,7 +54,7 @@ impl I18nDrivenPort for I18nEmbeddedFtlAdapter {
             })
             .collect::<Result<HashMap<Language, FluentLanguageLoader>, CommonError>>()?;
 
-        let service = I18nEmbeddedFtlAdapter {default_language: DEFAULT_LANGUAGE, loaders };
+        let service = I18nEmbeddedFtlAdapter { selected_language: DEFAULT_LANGUAGE, loaders };
 
         service.make_sure_i18n_is_properly_initialized()?;
 
@@ -62,13 +63,35 @@ impl I18nDrivenPort for I18nEmbeddedFtlAdapter {
 
 
     fn t(&self, key: TextKeys) -> String {
-        self.t_by_lang(self.default_language, key)
+        self.t_by_lang(self.selected_language, key)
     }
 
     fn t_by_lang(&self, language: Language, key: TextKeys) -> String {
         self.loaders[&language].get(&key.to_string())
     }
 
+
+
+    fn t_with_args(
+        &self,
+        key: TextKeys,
+        args: &[(&'static str, String)],
+    ) -> String {
+        let mut fluent_args = FluentArgs::new();
+
+        for (name, value) in args {
+            fluent_args.set(*name, FluentValue::from(value.clone()));
+        }
+
+        let args_map: HashMap<String, FluentValue> =
+            fluent_args
+                .into_iter()
+                .map(|(k, v)| (k.into_owned(), v))
+                .collect();
+
+        self.loaders[&self.selected_language]
+            .get_args(&key.to_string(), args_map)
+    }
 }
 
 

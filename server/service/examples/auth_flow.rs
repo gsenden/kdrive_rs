@@ -1,8 +1,8 @@
 use kdrive_service::kdrive::kdrive_service_client::KdriveServiceClient;
 use kdrive_service::kdrive::Empty;
 use std::io;
+use common::domain::defaults::DEFAULT_SERVER_URL;
 use tonic::Request;
-use kdrive_service::default_values::DEFAULT_SERVER_URL;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

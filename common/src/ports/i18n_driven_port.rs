@@ -6,4 +6,5 @@ pub trait I18nDrivenPort: Sized {
     fn load() -> Result<Self, CommonError>;
     fn t(&self, key: TextKeys) -> String;
     fn t_by_lang(&self, language: Language, key: TextKeys) -> String;
+    fn t_with_args(&self, key: TextKeys, args: &[(/* param name */ &'static str, String)]) -> String;
 }

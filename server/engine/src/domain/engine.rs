@@ -4,34 +4,42 @@ use crate::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 use crate::ports::driven::event_bus_driven_port::EventBusDrivenPort;
 use crate::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
 use crate::ports::driving::token_store_driving_port::TokenStoreDrivingPort;
+use common::ports::i18n_driven_port::I18nDrivenPort;
 
-pub struct Engine<AuthPort, TokenPort, EventPort>
+pub struct Engine<AuthPort, TokenPort, EventPort, I18NPort>
 where
     AuthPort: AuthenticatorDrivenPort,
     TokenPort: TokenStoreDrivingPort,
-    EventPort: EventBusDrivenPort
+    EventPort: EventBusDrivenPort,
+    I18NPort: I18nDrivenPort
 {
     authenticator_driven_port: AuthPort,
     #[allow(dead_code)]
     token_store: TokenPort,
     event_bus: EventPort,
+    #[allow(dead_code)]
+    pub i18n_port: I18NPort
 }
 
-impl<AuthPort, TokenPort, EventPort> Engine<AuthPort, TokenPort, EventPort>
+impl<AuthPort, TokenPort, EventPort, I18NPort> Engine<AuthPort, TokenPort, EventPort, I18NPort>
 where
     AuthPort: AuthenticatorDrivenPort,
     TokenPort: TokenStoreDrivingPort,
-    EventPort: EventBusDrivenPort
+    EventPort: EventBusDrivenPort,
+    I18NPort: I18nDrivenPort
 {
     pub fn new(
         authenticator_port: AuthPort,
         token_store: TokenPort,
-        event_bus: EventPort
+        event_bus: EventPort,
+        i18n_port: I18NPort
+
     ) -> Self {
         Engine {
             authenticator_driven_port: authenticator_port,
             token_store,
-            event_bus
+            event_bus,
+            i18n_port
         }
 
     }
@@ -57,11 +65,12 @@ where
     }
 }
 
-impl<AuthPort, TokenPort, EventPort> AuthenticatorDrivingPort for Engine<AuthPort, TokenPort, EventPort>
+impl<AuthPort, TokenPort, EventPort, I18NPort> AuthenticatorDrivingPort for Engine<AuthPort, TokenPort, EventPort, I18NPort>
 where
     AuthPort: AuthenticatorDrivenPort,
     TokenPort: TokenStoreDrivingPort,
-    EventPort: EventBusDrivenPort
+    EventPort: EventBusDrivenPort,
+    I18NPort: I18nDrivenPort
 {
     fn is_authenticated(&self) -> bool {
         self.token_store.has_tokens()
@@ -77,6 +86,7 @@ mod tests {
     use crate::domain::test_helpers::fake_authenticator_adapter::FakeAuthenticatorDrivenAdapter;
     use crate::domain::test_helpers::fake_event_bus::FakeEventBus;
     use crate::domain::test_helpers::fake_token_store_adapter::{FakeTokenStoreFileAdapter, FakeTokenStoreRingAdapter};
+    use crate::domain::test_helpers::fake_i18n::FakeI18n;
     use crate::domain::test_helpers::test_store::TestStore;
     use crate::domain::tokens::TokenStore;
     use crate::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
@@ -90,7 +100,8 @@ mod tests {
             None
         ).unwrap();
         let event_bus = FakeEventBus::new();
-        let engine = Engine::new(adapter, token_store, event_bus);
+        let i18n = FakeI18n;
+        let engine = Engine::new(adapter, token_store, event_bus, i18n);
 
         // When is_authenticated is called
         let result = engine.is_authenticated();
@@ -108,7 +119,8 @@ mod tests {
             None
         ).unwrap();
         let event_bus = FakeEventBus::new();
-        let engine = Engine::new(adapter, token_store, event_bus);
+        let i18n = FakeI18n;
+        let engine = Engine::new(adapter, token_store, event_bus, i18n);
 
         // When is_authenticated is called
         let result = engine.is_authenticated();
@@ -128,7 +140,8 @@ mod tests {
             None
         ).unwrap();
         let event_bus = FakeEventBus::new();
-        let mut engine = Engine::new(adapter, token_store, event_bus);
+        let i18n = FakeI18n;
+        let mut engine = Engine::new(adapter, token_store, event_bus, i18n);
 
         // When start_initial_auth_flow is called
         let result = engine.start_initial_auth_flow().await;
@@ -148,7 +161,8 @@ mod tests {
             None
         ).unwrap();
         let event_bus = FakeEventBus::new();
-        let mut engine = Engine::new(adapter, token_store, event_bus);
+        let i18n = FakeI18n;
+        let mut engine = Engine::new(adapter, token_store, event_bus, i18n);
 
         // When start_initial_auth_flow is called
         _ = engine.start_initial_auth_flow().await;
@@ -169,7 +183,8 @@ mod tests {
             None
         ).unwrap();
         let event_bus = FakeEventBus::new();
-        let mut engine = Engine::new(adapter, token_store, event_bus.clone());
+        let i18n = FakeI18n;
+        let mut engine = Engine::new(adapter, token_store, event_bus.clone(), i18n);
 
         // When continue_initial_auth_flow is called
         _ = engine.continue_initial_auth_flow().await;
@@ -187,7 +202,8 @@ mod tests {
             None
         ).unwrap();
         let event_bus = FakeEventBus::new();
-        let mut engine = Engine::new(adapter, token_store, event_bus.clone());
+        let i18n = FakeI18n;
+        let mut engine = Engine::new(adapter, token_store, event_bus.clone(), i18n);
 
         // When continue_initial_auth_flow fails
         _ = engine.continue_initial_auth_flow().await;
@@ -209,7 +225,8 @@ mod tests {
             Some(fake_file_tokens)
         ).unwrap();
         let event_bus = FakeEventBus::new();
-        let mut engine = Engine::new(adapter, token_store, event_bus);
+        let i18n = FakeI18n;
+        let mut engine = Engine::new(adapter, token_store, event_bus, i18n);
 
         // When auth flow completes
         _ = engine.start_initial_auth_flow().await;
