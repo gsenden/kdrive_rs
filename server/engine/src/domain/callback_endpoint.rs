@@ -14,18 +14,18 @@ pub trait ParseRedirectUrl {
 impl ParseRedirectUrl for RedirectUrl {
     fn parse(&self) -> Result<CallbackEndpoint, ServerError> {
 
-
-
         let parsed = Url::parse(self.as_str())
             .map_err(|_| error!(InvalidRedirectUrl, Url => self.as_str()))?;
 
+        let host = parsed
+            .host_str()
+            .ok_or_else(|| error!(InvalidRedirectUrl, Url => self.as_str()))?;
 
-        let host = parsed.host_str().unwrap_or("127.0.0.1");
         let port = parsed.port().unwrap_or(80);
         let path = parsed.path().to_string();
 
         let addr = SocketAddr::new(
-            host.parse().unwrap_or_else(|_| std::net::Ipv4Addr::LOCALHOST.into()),
+            host.parse().map_err(|_| error!(InvalidRedirectUrl, Url => self.as_str()))?,
             port,
         );
 

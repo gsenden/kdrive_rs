@@ -6,8 +6,9 @@ use common::domain::text_keys::TextKeys;
 #[macro_export]
 macro_rules! error {
     ($key:ident $(, $param:ident => $val:expr )* $(,)?) => {{
+        #[allow(unused_imports)]
+        use $crate::domain::errors::{ServerError, ErrorParam};
         use common::domain::text_keys::TextKeys;
-        use crate::domain::errors::{ServerError, ErrorParam};
 
         ServerError::Localized {
             key: TextKeys::$key,
@@ -79,9 +80,6 @@ pub enum ServerError {
     #[error("Missing redirect URL environment variable")]
     MissingRedirectUrlEnvVar,
 
-    #[error("Environment variable CLIENT_ID needs to be set during build time")]
-    MissingClientIDEnvVarDuringBuild,
-
     #[error("Environment variable CLIENT_SECRET needs to be set during build time")]
     MissingClientSecretEnvVarDuringBuild,
 
@@ -124,17 +122,8 @@ pub enum ServerError {
     #[error("Invalid redirect URL: {0}")]
     InvalidRedirectUrl(String),
 
-    #[error("Missing redirect URL in the client")]
-    MissingRedirectUrl,
-
     #[error("Failed to start callback server: {0}")]
     ServerFailed(String),
-
-    #[error("OAuth returned error: {0}")]
-    OAuthReturnedError(String),
-
-    #[error("Missing authorization code")]
-    MissingAuthorizationCode,
 
     #[error("Server failed to signal ready state")]
     ServerFailedToSignalReadyState,

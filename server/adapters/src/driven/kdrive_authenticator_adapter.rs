@@ -15,6 +15,7 @@ use engine::domain::callback_endpoint::{CallbackEndpoint, ParseRedirectUrl};
 use engine::domain::configuration::Configuration;
 use engine::domain::errors::ServerError;
 use engine::domain::tokens::Tokens;
+use engine::error;
 use engine::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 
 pub struct KDriveAuthenticator {
@@ -229,12 +230,12 @@ impl KDriveAuthenticator {
             (None, Some(error)) => (
                 StatusCode::BAD_REQUEST,
                 include_str!("templates/oauth_configuration_error.html"),
-                Err(ServerError::OAuthReturnedError(error.clone())),
+                Err(error!(OAuthReturnedError, Reason => error)),
             ),
             (None, None) => (
                 StatusCode::BAD_REQUEST,
                 include_str!("templates/no_oauth_code_error.html"),
-                Err(ServerError::MissingAuthorizationCode),
+                Err(error!(MissingAuthorizationCode)),
             ),
         }
     }

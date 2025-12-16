@@ -4,4 +4,8 @@ use strum_macros::{Display, EnumIter, VariantNames};
 pub enum TextKeys {
     AuthenticateBtn,
     InvalidRedirectUrl,
+    MissingRedirectUrl,
+    MissingClientId,
+    OAuthReturnedError,
+    MissingAuthorizationCode,
 }

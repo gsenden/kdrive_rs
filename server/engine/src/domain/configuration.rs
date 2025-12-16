@@ -1,6 +1,7 @@
 use oauth2::{AuthUrl, ClientId, RedirectUrl, TokenUrl};
 use crate::domain::default_values::configurator_defaults::{DEFAULT_CLIENT_ID};
 use crate::domain::errors::ServerError;
+use crate::error;
 use crate::ports::driven::configurator_driven_port::ConfiguratorPort;
 
 #[derive(Debug, Clone)]
@@ -21,7 +22,11 @@ impl Configurator {
         let config = port.load()?;
 
         if config.client_id.as_str() == DEFAULT_CLIENT_ID {
-            return Err(ServerError::MissingClientIDEnvVarDuringBuild);
+            return Err(error!(MissingClientId));
+        }
+
+        if config.redirect_url.as_str().is_empty() {
+            return Err(error!(MissingRedirectUrl));
         }
 
         Ok(Configurator { config })
@@ -35,6 +40,7 @@ impl Configurator {
 
 #[cfg(test)]
 mod tests {
+    use common::domain::text_keys::TextKeys;
     use super::*;
     use crate::domain::default_values::configurator_defaults::*;
     use crate::domain::test_helpers::fake_configurator_adapter::FakeConfiguratorPort;
@@ -78,8 +84,11 @@ mod tests {
         let result = Configurator::load(&port);
 
         assert!(matches!(
-            result.unwrap_err(),
-            ServerError::MissingClientIDEnvVarDuringBuild
-        ));
+        result.unwrap_err(),
+        ServerError::Localized {
+            key: TextKeys::MissingClientId,
+            args
+        } if args.is_empty()
+    ));
     }
 }
