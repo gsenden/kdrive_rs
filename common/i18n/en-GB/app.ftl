@@ -19,3 +19,5 @@ NoRefreshTokenReceived = No refresh token received.
 NoAccessTokenReceived = No access token received.
 FlowNotStarted = Flow not started.
 NoConfigFolderFound = No config folder found.
+AuthenticateWithBrowserMessage = Please authenticate using the browser.
+ErrorMsg = Error

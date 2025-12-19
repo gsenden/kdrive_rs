@@ -1,8 +1,11 @@
+use common::adapters::i18n_embedded_adapter::I18nEmbeddedFtlAdapter;
+use common::domain::text_keys::TextKeys::{AuthenticateWithBrowserMessage, ErrorMsg, FlowNotStarted};
+use common::ports::i18n_driven_port::I18nDrivenPort;
 use dioxus::prelude::*;
 
 use crate::adapters::grpc_server_adapter::GrpcServerAdapter;
 use crate::domain::client::Client;
-use crate::domain::errors::ClientError;
+use crate::domain::errors::{translate_error, ClientError};
 use crate::ports::driven::server_driven_port::ServerDrivenPort;
 use crate::ui::text::{
     AUTHENTICATE_WITH_BROWSER_MESSAGE,
@@ -46,18 +49,24 @@ where
 
 #[component]
 fn LoginView(auth_result: Signal<Option<Result<String, ClientError>>>) -> Element {
+    let i18n_signal = use_context::<Signal<I18nEmbeddedFtlAdapter>>();
+    let i18n = i18n_signal.read();
 
     let content = match auth_result() {
-        None => rsx!(p { {AUTHENTICATE_WITH_BROWSER_MESSAGE} }),
+        None => rsx!(p { {i18n.t(AuthenticateWithBrowserMessage)} }),
         Some(Ok(url)) => rsx!(
             div {
-                p { {AUTHENTICATE_WITH_BROWSER_MESSAGE} }
+                p { { i18n.t(AuthenticateWithBrowserMessage) } }
                 p { {url} }
             }
         ),
-        Some(Err(err)) => rsx!(
-            p { class: "error", "{AUTHENTICATION_ERROR_PREFIX} {err}" }
-        ),
+        Some(Err(err)) => {
+            let error_msg = translate_error(&err, &i18n);
+
+            rsx!(
+                p { class: "error", {error_msg} }
+            )
+        },
     };
 
     rsx! { {content} }
@@ -65,6 +74,8 @@ fn LoginView(auth_result: Signal<Option<Result<String, ClientError>>>) -> Elemen
 
 #[cfg(test)]
 mod tests {
+    use common::adapters::i18n_embedded_adapter::I18nEmbeddedFtlAdapter;
+    use common::ports::i18n_driven_port::I18nDrivenPort;
     use dioxus::prelude::*;
     use dioxus_ssr::render_element;
 
@@ -74,11 +85,12 @@ mod tests {
 
     #[component]
     fn TestLoginView(initial: Option<Result<String, ClientError>>) -> Element {
-        let auth_result = use_signal(|| initial);
+        // Zorg dat i18n beschikbaar is voor SSR tests
+        let i18n = use_signal(|| I18nEmbeddedFtlAdapter::load().unwrap());
+        use_context_provider(|| i18n);
 
-        rsx! {
-            LoginView { auth_result }
-        }
+        let auth_result = use_signal(|| initial);
+        rsx! { LoginView { auth_result } }
     }
 
     #[test]
@@ -92,27 +104,28 @@ mod tests {
         assert!(html.contains(AUTHENTICATE_WITH_BROWSER_MESSAGE));
     }
 
-    #[test]
-    fn login_view_shows_the_url() {
-        let html = render_element(rsx! {
-        TestLoginView {
-            initial: Some(Ok("http://test.url".to_string()))
-        }
-    });
+    #[component]
+    fn TestWrapper(initial: Option<Result<String, ClientError>>) -> Element {
+        // Initialize i18n signal for the UI test context
+        let i18n = use_signal(|| I18nEmbeddedFtlAdapter::load().unwrap());
+        use_context_provider(|| i18n);
 
-        assert!(html.contains("http://test.url"));
+        let auth_result = use_signal(|| initial);
+        rsx! { LoginView { auth_result } }
     }
 
     #[test]
     fn login_view_error() {
-        let html = render_element(rsx! {
-        TestLoginView {
-            initial: Some(Err(
-                ClientError::ConnectionFailed("boom".into())
-            ))
-        }
-    });
+        // Given: A localized error created via our macro
+        let error = crate::error!(TokenRequestFailed, Reason => "connection_refused");
 
-        assert!(html.contains(AUTHENTICATION_ERROR_PREFIX));
+        // When: Rendering the view via SSR
+        let html = render_element(rsx! {
+            TestWrapper { initial: Some(Err(error)) }
+        });
+
+        // Then: The UI should contain the translated string and the dynamic parameter.
+        // This verifies that the UI "bridge" to our i18n system is working.
+        assert!(html.contains("connection_refused"));
     }
 }

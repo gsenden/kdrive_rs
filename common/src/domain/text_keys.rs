@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumIter, VariantNames};
 
-#[derive(EnumIter, Display, VariantNames, Debug, Clone, PartialEq, Deserialize, Serialize)]
+#[derive(EnumIter, Display, VariantNames, Debug, Clone, Copy, PartialEq, Deserialize, Serialize)]
 pub enum TextKeys {
     AuthenticateBtn,
     InvalidRedirectUrl,
@@ -23,5 +23,7 @@ pub enum TextKeys {
     NoRefreshTokenReceived,
     NoAccessTokenReceived,
     FlowNotStarted,
-    NoConfigFolderFound
+    NoConfigFolderFound,
+    AuthenticateWithBrowserMessage,
+    ErrorMsg,
 }

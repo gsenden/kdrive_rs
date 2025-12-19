@@ -3,6 +3,7 @@ use common::domain::defaults::DEFAULT_SERVER_URL;
 use tonic::transport::Channel;
 
 use crate::domain::errors::ClientError;
+use crate::error;
 use crate::kdrive::kdrive_service_client::KdriveServiceClient;
 use crate::kdrive::Empty;
 use crate::ports::driven::server_driven_port::ServerDrivenPort;
@@ -14,19 +15,18 @@ pub struct GrpcServerAdapter {
 
 impl PartialEq for GrpcServerAdapter {
     fn eq(&self, _other: &Self) -> bool {
-        // We kunnen de clients niet echt vergelijken,
-        // dus we zeggen dat ze altijd gelijk zijn
-        // (of altijd ongelijk, afhankelijk van je use case)
         true
     }
 }
-
 impl GrpcServerAdapter {
     pub async fn connect() -> Result<Self, ClientError> {
         let channel = Channel::from_static(DEFAULT_SERVER_URL)
             .connect()
             .await
-            .map_err(|e| ClientError::ConnectionFailed(e.to_string()))?;
+            .map_err(|e| {
+                // Gebruik de client-specifieke macro
+                error!(TokenRequestFailed, Reason => e.to_string())
+            })?;
 
         Ok(Self {
             client: KdriveServiceClient::new(channel),

@@ -3,6 +3,12 @@ use ui::views::{Blog, Home, Login, Navbar};
 use domain::client::Client;
 use adapters::grpc_server_adapter::GrpcServerAdapter;
 use crate::domain::view::View;
+use crate::domain::errors::{translate_error, ClientError};
+
+// I18n imports
+use common::adapters::i18n_embedded_adapter::I18nEmbeddedFtlAdapter;
+use common::ports::i18n_driven_port::I18nDrivenPort;
+use common::domain::text_keys::TextKeys;
 
 mod adapters;
 mod domain;
@@ -33,6 +39,12 @@ fn main() {
 
 #[component]
 fn App() -> Element {
+    let i18n_signal = use_signal(|| {
+        I18nEmbeddedFtlAdapter::load().expect("Failed to load localizations")
+    });
+
+    use_context_provider(|| i18n_signal);
+
     let client_resource = use_resource(|| async {
         let adapter = GrpcServerAdapter::connect().await?;
         Ok::<_, domain::errors::ClientError>(Client::new(adapter))
@@ -47,15 +59,21 @@ fn App() -> Element {
             Some(Ok(client)) => rsx! {
                 AppWithClient { client: client.clone() }
             },
-            Some(Err(e)) => rsx! {
-                div { class: "error",
-                    h1 { "Connection Error" }
-                    p { "{e}" }
+            Some(Err(e)) => {
+                let error_msg = translate_error(e, &i18n_signal.read());
+                rsx! {
+                    div { class: "error",
+                        h1 { "Connection Error" }
+                        p { "{error_msg}" }
+                    }
                 }
             },
-            None => rsx! {
-                div { class: "loading",
-                    p { "Connecting to server..." }
+            None => {
+                let loading_msg = i18n_signal.read().t(TextKeys::FlowNotStarted);
+                rsx! {
+                    div { class: "loading",
+                        p { "{loading_msg}" }
+                    }
                 }
             },
         }
@@ -65,6 +83,7 @@ fn App() -> Element {
 #[component]
 fn AppWithClient(client: Client<GrpcServerAdapter>) -> Element {
     use_context_provider(|| client.clone());
+    let i18n_signal = use_context::<Signal<I18nEmbeddedFtlAdapter>>();
 
     let view = use_resource(move || {
         let client = client.clone();
@@ -77,8 +96,12 @@ fn AppWithClient(client: Client<GrpcServerAdapter>) -> Element {
         match &*view.read() {
             Some(View::Login) => rsx! { Login {} },
             Some(View::Home) => rsx! { Router::<Route> {} },
-            Some(View::Error(e)) => rsx! { "Error: {e}" },
+            Some(View::Error(e)) => {
+                let msg = translate_error(e, &i18n_signal.read());
+                rsx! { "Error: {msg}" }
+            },
             None => rsx! { "Loading..." },
         }
     }
 }
+

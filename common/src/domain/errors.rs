@@ -32,7 +32,7 @@ macro_rules! localized_error {
     }};
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ErrorParam {
     Url,
     Reason,

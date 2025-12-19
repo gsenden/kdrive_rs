@@ -19,3 +19,5 @@ NoRefreshTokenReceived = Geen refresh token ontvangen.
 NoAccessTokenReceived = Geen access token ontvangen.
 FlowNotStarted = Het authenticatieproces is nog niet gestart.
 NoConfigFolderFound = Geen configuratiemap gevonden.
+AuthenticateWithBrowserMessage = Gebruik de browser om the authenticeren.
+ErrorMsg = Fout

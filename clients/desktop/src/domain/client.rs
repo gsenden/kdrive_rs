@@ -39,6 +39,7 @@ mod tests {
     use crate::domain::errors::ClientError;
     use crate::domain::test_helpers::fake_server_adapter::{FakeServerAdapter, TEST_URL_RESPONSE};
     use crate::domain::view::View;
+    use crate::error;
 
     #[tokio::test]
     async fn if_the_server_is_authenticated_then_the_home_page_is_shown() {
@@ -68,17 +69,22 @@ mod tests {
 
     #[tokio::test]
     async fn if_the_connection_to_the_server_has_an_error_then_the_error_page_is_shown() {
-        // Given a client
+        // Given: A server adapter configured to return a specific Localized error
         let mut server_adapter = FakeServerAdapter::new(true);
-        let error = ClientError::ConnectionFailed("test error".to_string());
-        server_adapter.set_error(error.clone());
+
+        // We create the expected error using the macro.
+        // This tests data structures rather than translated strings.
+        let expected_error = crate::error!(TokenRequestFailed, Reason => "test error");
+
+        server_adapter.set_error(expected_error.clone());
         let client = Client::new(server_adapter);
 
-        // When the page for the root route is requested
+        // When: The root view is requested
         let view = client.get_root_view().await;
 
-        // Then the returned view is the Home View
-        assert_eq!(view, View::Error(error.clone()));
+        // Then: The view must be an Error variant containing exactly the data we provided.
+        // This ensures the logic propagates the correct key and parameters.
+        assert_eq!(view, View::Error(expected_error));
     }
 
     #[tokio::test]
