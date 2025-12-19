@@ -9,6 +9,7 @@ use crate::domain::errors::{translate_error, ClientError};
 use common::adapters::i18n_embedded_adapter::I18nEmbeddedFtlAdapter;
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use common::domain::text_keys::TextKeys;
+use common::domain::text_keys::TextKeys::{ConnectionError, FlowNotStarted};
 
 mod adapters;
 mod domain;
@@ -44,6 +45,7 @@ fn App() -> Element {
     });
 
     use_context_provider(|| i18n_signal);
+    let i18n = i18n_signal.read();
 
     let client_resource = use_resource(|| async {
         let adapter = GrpcServerAdapter::connect().await?;
@@ -55,24 +57,23 @@ fn App() -> Element {
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
 
+
         match &*client_resource.read() {
             Some(Ok(client)) => rsx! {
                 AppWithClient { client: client.clone() }
             },
             Some(Err(e)) => {
-                let error_msg = translate_error(e, &i18n_signal.read());
                 rsx! {
                     div { class: "error",
-                        h1 { "Connection Error" }
-                        p { "{error_msg}" }
+                        h1 { {i18n.t(ConnectionError)} }
+                        p { {translate_error(e, &i18n_signal.read())} }
                     }
                 }
             },
             None => {
-                let loading_msg = i18n_signal.read().t(TextKeys::FlowNotStarted);
                 rsx! {
                     div { class: "loading",
-                        p { "{loading_msg}" }
+                        p { {i18n.t(FlowNotStarted)} }
                     }
                 }
             },

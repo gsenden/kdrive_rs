@@ -20,4 +20,4 @@ NoAccessTokenReceived = No access token received.
 FlowNotStarted = Flow not started.
 NoConfigFolderFound = No config folder found.
 AuthenticateWithBrowserMessage = Please authenticate using the browser.
-ErrorMsg = Error
+ConnectionError = Connection Error

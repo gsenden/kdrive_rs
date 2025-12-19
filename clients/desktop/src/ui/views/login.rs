@@ -1,5 +1,5 @@
 use common::adapters::i18n_embedded_adapter::I18nEmbeddedFtlAdapter;
-use common::domain::text_keys::TextKeys::{AuthenticateWithBrowserMessage, ErrorMsg, FlowNotStarted};
+use common::domain::text_keys::TextKeys::{AuthenticateWithBrowserMessage};
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use dioxus::prelude::*;
 
@@ -8,7 +8,6 @@ use crate::domain::client::Client;
 use crate::domain::errors::{translate_error, ClientError};
 use crate::ports::driven::server_driven_port::ServerDrivenPort;
 use crate::ui::text::{
-    AUTHENTICATE_WITH_BROWSER_MESSAGE,
     AUTHENTICATION_ERROR_PREFIX,
 };
 use crate::ui::utils::Pipe;

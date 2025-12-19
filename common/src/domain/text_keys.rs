@@ -25,5 +25,5 @@ pub enum TextKeys {
     FlowNotStarted,
     NoConfigFolderFound,
     AuthenticateWithBrowserMessage,
-    ErrorMsg,
+    ConnectionError,
 }
