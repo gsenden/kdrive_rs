@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use crate::domain::errors::ServerError;
+use crate::error;
 use crate::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
 use crate::ports::driving::token_store_driving_port::TokenStoreDrivingPort;
 
@@ -80,8 +81,7 @@ impl <TRP: TokenStoreDrivenPort, TFP: TokenStoreDrivenPort>TokenStore<TRP, TFP> 
                 return Ok(ActivePort::File(file_store))
             }
         }
-
-        Err(ServerError::MissingStorePort)
+        Err(error!(MissingStorePort))
     }
 }
 
@@ -162,7 +162,13 @@ mod tests {
 
         let store_result = TestStore::new(tokens, None, None);
 
-        assert!(matches!(store_result, Err(ServerError::MissingStorePort)));
+        assert!(matches!(
+        store_result,
+        Err(ServerError::Localized {
+            key: common::domain::text_keys::TextKeys::MissingStorePort,
+            ..
+        })
+    ));
     }
 
     // access_token

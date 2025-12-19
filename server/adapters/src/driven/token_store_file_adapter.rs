@@ -7,6 +7,7 @@ use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 use engine::domain::tokens::Tokens;
+use engine::error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenStoreFileAdapter;
@@ -25,14 +26,12 @@ impl TokenStoreDrivenPort for TokenStoreFileAdapter {
                 return Ok(None);
             }
             Err(e) => {
-                return Err(ServerError::CouldNotReadTokensFromFile(
-                    e.to_string(),
-                ));
+                return Err( error!(CouldNotReadTokensFromFile, Reason => e.to_string()) );
             }
         };
 
         let tokens: Tokens = serde_json::from_str(&data).map_err(|e| {
-            ServerError::CouldNotParseJson(e.to_string())
+            error!(CouldNotParseJson, Reason => e.to_string())
         })?;
 
         Ok(Some(tokens))
@@ -41,7 +40,7 @@ impl TokenStoreDrivenPort for TokenStoreFileAdapter {
     fn save(&self, tokens: &Tokens) -> Result<(), ServerError> {
         let path = tokens_file_path()?;
         let json = serde_json::to_string_pretty(tokens).map_err(|e| {
-            ServerError::CouldNotSerializeTokens(e.to_string())
+            error!(CouldNotSerializeTokens, Reason => e.to_string())
         })?;
 
         #[cfg(unix)]
@@ -55,11 +54,11 @@ impl TokenStoreDrivenPort for TokenStoreFileAdapter {
                 .mode(0o600)
                 .open(&path)
                 .map_err(|e| {
-                    ServerError::CouldNotOpenTokenFile(e.to_string())
+                    error!(CouldNotOpenTokenFile, Reason => e.to_string())
                 })?;
 
             file.write_all(json.as_bytes()).map_err(|e| {
-                ServerError::CouldNotSaveTokenFile(e.to_string())
+                error!(CouldNotSaveTokenFile, Reason => e.to_string())
             })?;
         }
 
@@ -76,11 +75,11 @@ impl TokenStoreDrivenPort for TokenStoreFileAdapter {
 
 fn tokens_file_path() -> Result<PathBuf, ServerError> {
     let mut path = config_dir()
-        .ok_or_else(|| ServerError::NoConfigFolderFound)?;
+        .ok_or_else(|| error!(NoConfigFolderFound) )?;
 
     path.push(APPLICATION_NAME);
     fs::create_dir_all(&path)
-        .map_err(|e| ServerError::CouldNotCreateFolder(e.to_string()))?;
+        .map_err(|e| error!(CouldNotCreateFolder, Reason => e.to_string()) )?;
 
     path.push(TOKEN_FILE_NAME);
     Ok(path)

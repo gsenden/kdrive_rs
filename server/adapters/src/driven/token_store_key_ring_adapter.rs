@@ -4,6 +4,7 @@ use engine::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
 use serde::{Deserialize, Serialize};
 use keyring::Entry;
 use engine::domain::tokens::Tokens;
+use engine::error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenStoreKeyRingAdapter;
@@ -15,7 +16,7 @@ impl TokenStoreDrivenPort for TokenStoreKeyRingAdapter {
 
     fn load(&self) -> Result<Option<Tokens>, ServerError> {
         let entry = Entry::new(KEYRING_SERVICE, KEYRING_USER)
-            .map_err(|e| ServerError::CouldNotAccessKeyring(e.to_string()))?;
+            .map_err(|e| error!(CouldNotAccessKeyring, Reason => e.to_string()) )?;
 
         let json = match entry.get_password() {
             Ok(json) => json,
@@ -23,12 +24,12 @@ impl TokenStoreDrivenPort for TokenStoreKeyRingAdapter {
                 if error.to_string().contains("No matching entry") {
                     return Ok(None);
                 }
-                return Err(ServerError::CouldNotReadTokensFromKeyring(error.to_string()));
+                return Err( error!(CouldNotReadTokensFromKeyring, Reason => error.to_string()) );
             }
         };
 
         let tokens: Tokens = serde_json::from_str(&json).map_err(|e| {
-            ServerError::CouldNotParseJson(e.to_string())
+            error!(CouldNotParseJson, Reason => e.to_string())
         })?;
 
         Ok(Some(tokens))
@@ -36,15 +37,15 @@ impl TokenStoreDrivenPort for TokenStoreKeyRingAdapter {
 
     fn save(&self, tokens: &Tokens) -> Result<(), ServerError> {
         let entry = Entry::new(KEYRING_SERVICE, KEYRING_USER)
-            .map_err(|e| ServerError::CouldNotAccessKeyring(e.to_string()))?;
+            .map_err(|e| error!(CouldNotAccessKeyring, Reason => e.to_string()) )?;
 
         let json = serde_json::to_string(tokens).map_err(|e| {
-            ServerError::CouldNotSerializeTokens(e.to_string())
+            error!(CouldNotSerializeTokens, Reason => e.to_string())
         })?;
 
         entry
             .set_password(&json)
-            .map_err(|e| ServerError::CouldNotSaveTokensToKeyring(e.to_string()))?;
+            .map_err(|e| error!(CouldNotSaveTokensToKeyring, Reason => e.to_string()) )?;
 
         Ok(())
     }

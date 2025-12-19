@@ -75,12 +75,12 @@ impl AuthenticatorDrivenPort for KDriveAuthenticator {
     async fn continue_initial_auth_flow(&mut self) -> Result<bool, ServerError> {
         let pkce_verifier = match self.pkce_verifier.take() {
             Some(v) => v,
-            None => return Err(ServerError::FlowNotStarted),
+            None => return Err(error!(FlowNotStarted)),
         };
 
         let receiver = match self.code_rx.take() {
             Some(rx) => rx,
-            None => return Err(ServerError::FlowNotStarted),
+            None => return Err(error!(FlowNotStarted)),
         };
 
         // Wait for the auth code to arrive
@@ -103,7 +103,7 @@ impl AuthenticatorDrivenPort for KDriveAuthenticator {
             .set_pkce_verifier(pkce_verifier)
             .request_async(&http_client)
             .await
-            .map_err(|e| ServerError::TokenRequestFailed(e.to_string()))?;
+            .map_err(|e| error!(TokenRequestFailed, Reason => e.to_string()) )?;
 
         // Access token should be requested by calling get_access_token()
         self.access_token = Some(token_result.access_token().clone());
@@ -118,13 +118,13 @@ impl AuthenticatorDrivenPort for KDriveAuthenticator {
     async fn get_tokens(&self) -> Result<Tokens, ServerError> {
         let access_token = self.access_token
             .as_ref()
-            .ok_or(ServerError::NoAccessTokenReceived)?
+            .ok_or(error!(NoAccessTokenReceived))?
             .secret()
             .clone();
 
         let refresh_token = self.refresh_token
             .as_ref()
-            .ok_or(ServerError::NoRefreshTokenReceived)?
+            .ok_or(error!(NoRefreshTokenReceived))?
             .secret()
             .clone();
 
@@ -169,7 +169,7 @@ impl KDriveAuthenticator {
 
         let refresh_token = match &self.refresh_token {
             Some(rt) => rt,
-            None => return Err(ServerError::FlowNotStarted),
+            None => return Err(error!(FlowNotStarted)),
         };
 
         let http_client = reqwest::Client::new();
@@ -178,7 +178,7 @@ impl KDriveAuthenticator {
             .exchange_refresh_token(refresh_token)
             .request_async(&http_client)
             .await
-            .map_err(|e| ServerError::TokenRequestFailed(e.to_string()))?;
+            .map_err(|e| error!(TokenRequestFailed, Reason => e.to_string()) )?;
 
         self.access_token = Some(token_result.access_token().clone());
         if let Some(rt) = token_result.refresh_token() {

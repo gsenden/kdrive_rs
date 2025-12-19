@@ -6,6 +6,7 @@ use crate::domain::errors::ServerError;
 use crate::domain::test_helpers::fake_configurator_adapter::FakeConfiguratorPort;
 use crate::domain::test_helpers::fake_token_store_adapter::*;
 use crate::domain::tokens::Tokens;
+use crate::error;
 use crate::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 use crate::ports::driven::configurator_driven_port::ConfiguratorPort;
 
@@ -52,7 +53,8 @@ impl FakeAuthenticatorDrivenAdapter {
 impl AuthenticatorDrivenPort for FakeAuthenticatorDrivenAdapter {
     async fn start_initial_auth_flow(&mut self) -> Result<String, ServerError> {
         let mut url = Url::parse(self.auth_url.as_str())
-            .map_err(|e| ServerError::InvalidRedirectUrl(e.to_string()))?;
+
+            .map_err(|e| error!(InvalidRedirectUrl, Url => e.to_string()))?;
         url.query_pairs_mut()
             .append_pair("client_id", self.client_id.as_str());
         Ok(url.to_string())
@@ -60,14 +62,14 @@ impl AuthenticatorDrivenPort for FakeAuthenticatorDrivenAdapter {
 
     async fn continue_initial_auth_flow(&mut self) -> Result<bool, ServerError> {
         if self.should_fail {
-            return Err(ServerError::FlowNotStarted)
+            return Err(error!(FlowNotStarted));
         }
         Ok(true)
     }
 
     async fn get_tokens(&self) -> Result<Tokens, ServerError> {
         if self.should_fail {
-            return Err(ServerError::FlowNotStarted);
+            return Err(error!(FlowNotStarted));
         }
         Ok(Tokens {
             access_token: TEST_RING_ACCESS_TOKEN.parse().unwrap(),
