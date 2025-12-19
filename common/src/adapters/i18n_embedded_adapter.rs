@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::Arc;
 use i18n_embed::fluent::FluentLanguageLoader;
 use rust_embed::RustEmbed;
 use strum::IntoEnumIterator;
@@ -13,12 +14,29 @@ use fluent_bundle::{FluentArgs, FluentValue};
 #[folder = "i18n"]
 struct Localizations;
 
+#[derive(Clone)]
 pub struct I18nEmbeddedFtlAdapter {
     selected_language: Language,
-    loaders: HashMap<Language, FluentLanguageLoader>
+    loaders: Arc<HashMap<Language, FluentLanguageLoader>>
 }
 
 impl I18nEmbeddedFtlAdapter {
+    pub fn load() -> Result<I18nEmbeddedFtlAdapter, CommonError>{
+
+        let loaders: HashMap<Language, FluentLanguageLoader> = Language::iter()
+            .map(|language| {
+                let loader = FluentLanguageLoader::new(DOMAIN, language.lang_id());
+                i18n_embed::select(&loader,&Localizations,&[language.lang_id()])?;
+                Ok((language,loader))
+            })
+            .collect::<Result<HashMap<Language, FluentLanguageLoader>, CommonError>>()?;
+
+        let service = I18nEmbeddedFtlAdapter { selected_language: DEFAULT_LANGUAGE, loaders: Arc::new(loaders) };
+
+        service.make_sure_i18n_is_properly_initialized()?;
+
+        Ok(service)
+    }
     fn make_sure_i18n_is_properly_initialized(&self) -> Result<(), CommonError> {
         for language in Language::iter() {
             let loader = self
@@ -43,40 +61,22 @@ impl I18nEmbeddedFtlAdapter {
     }
 }
 
-impl I18nDrivenPort for I18nEmbeddedFtlAdapter {
-    fn load() -> Result<I18nEmbeddedFtlAdapter, CommonError>{
-
-        let loaders: HashMap<Language, FluentLanguageLoader> = Language::iter()
-            .map(|language| {
-                let loader = FluentLanguageLoader::new(DOMAIN, language.lang_id());
-                i18n_embed::select(&loader,&Localizations,&[language.lang_id()])?;
-                Ok((language,loader))
-            })
-            .collect::<Result<HashMap<Language, FluentLanguageLoader>, CommonError>>()?;
-
-        let service = I18nEmbeddedFtlAdapter { selected_language: DEFAULT_LANGUAGE, loaders };
-
-        service.make_sure_i18n_is_properly_initialized()?;
-
-        Ok(service)
+impl PartialEq for I18nEmbeddedFtlAdapter {
+    fn eq(&self, other: &Self) -> bool {
+        self.selected_language == other.selected_language
+            && Arc::ptr_eq(&self.loaders, &other.loaders)
     }
+}
 
 
+impl I18nDrivenPort for I18nEmbeddedFtlAdapter {
     fn t(&self, key: TextKeys) -> String {
         self.t_by_lang(self.selected_language, key)
     }
-
     fn t_by_lang(&self, language: Language, key: TextKeys) -> String {
         self.loaders[&language].get(&key.to_string())
     }
-
-
-
-    fn t_with_args(
-        &self,
-        key: TextKeys,
-        args: &[(&'static str, String)],
-    ) -> String {
+    fn t_with_args( &self, key: TextKeys, args: &[(&'static str, String)] ) -> String {
         let mut fluent_args = FluentArgs::new();
 
         for (name, value) in args {

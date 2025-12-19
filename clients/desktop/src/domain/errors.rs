@@ -26,7 +26,7 @@ impl std::fmt::Display for ClientError {
     }
 }
 
-pub fn translate_error(err: &ClientError, i18n: &I18nEmbeddedFtlAdapter) -> String {
+pub fn translate_error<I18nPort: I18nDrivenPort>(err: &ClientError, i18n: &I18nPort) -> String {
     match err {
         ClientError::ServerError(msg) => msg.clone(),
         ClientError::Localized(loc) => {

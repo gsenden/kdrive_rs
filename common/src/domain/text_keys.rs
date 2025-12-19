@@ -26,4 +26,8 @@ pub enum TextKeys {
     NoConfigFolderFound,
     AuthenticateWithBrowserMessage,
     ConnectionError,
+    KDriveLogoAlt,
+    KDriveProductName,
+    CopyLinkToBrowser,
+    CopyText,
 }

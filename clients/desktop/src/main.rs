@@ -40,16 +40,13 @@ fn main() {
 
 #[component]
 fn App() -> Element {
-    let i18n_signal = use_signal(|| {
+    let i18n = use_hook(|| {
         I18nEmbeddedFtlAdapter::load().expect("Failed to load localizations")
     });
 
-    use_context_provider(|| i18n_signal);
-    let i18n = i18n_signal.read();
-
     let client_resource = use_resource(|| async {
-        let adapter = GrpcServerAdapter::connect().await?;
-        Ok::<_, domain::errors::ClientError>(Client::new(adapter))
+        let grpc_adapter = GrpcServerAdapter::connect().await?;
+        Ok::<_, domain::errors::ClientError>(Client::new(grpc_adapter))
     });
 
     rsx! {
@@ -57,16 +54,15 @@ fn App() -> Element {
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
 
-
         match &*client_resource.read() {
             Some(Ok(client)) => rsx! {
-                AppWithClient { client: client.clone() }
+                AppWithClient { client: client.clone(), i18n: i18n.clone() }
             },
             Some(Err(e)) => {
                 rsx! {
                     div { class: "error",
                         h1 { {i18n.t(ConnectionError)} }
-                        p { {translate_error(e, &i18n_signal.read())} }
+                        p { {translate_error(e, &i18n)} }
                     }
                 }
             },
@@ -82,9 +78,8 @@ fn App() -> Element {
 }
 
 #[component]
-fn AppWithClient(client: Client<GrpcServerAdapter>) -> Element {
+fn AppWithClient<I18nPort: I18nDrivenPort + 'static>(client: Client<GrpcServerAdapter>, i18n: I18nPort) -> Element {
     use_context_provider(|| client.clone());
-    let i18n_signal = use_context::<Signal<I18nEmbeddedFtlAdapter>>();
 
     let view = use_resource(move || {
         let client = client.clone();
@@ -95,10 +90,10 @@ fn AppWithClient(client: Client<GrpcServerAdapter>) -> Element {
 
     rsx! {
         match &*view.read() {
-            Some(View::Login) => rsx! { Login {} },
+            Some(View::Login) => rsx! { Login { i18n } },
             Some(View::Home) => rsx! { Router::<Route> {} },
             Some(View::Error(e)) => {
-                let msg = translate_error(e, &i18n_signal.read());
+                let msg = translate_error(e, &i18n);
                 rsx! { "Error: {msg}" }
             },
             None => rsx! { "Loading..." },

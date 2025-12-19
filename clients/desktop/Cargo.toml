@@ -15,6 +15,8 @@ tonic-prost = "0.14.2"
 thiserror = "2.0.17"
 tokio = "1.48.0"
 serde = { version = "1.0.228", features = ["derive"] }
+webbrowser = "1.0.6"
+arboard = "3.6.1"
 
 [dev-dependencies]
 dioxus-ssr = "0.7.2"

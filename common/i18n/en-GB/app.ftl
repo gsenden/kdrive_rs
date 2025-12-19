@@ -21,3 +21,7 @@ FlowNotStarted = Flow not started.
 NoConfigFolderFound = No config folder found.
 AuthenticateWithBrowserMessage = Please authenticate using the browser.
 ConnectionError = Connection Error
+KDriveLogoAlt = kDrive Logo
+KDriveProductName = KDRIVE
+CopyLinkToBrowser = If the button does not work you can copy this link to your browser and authenticate with your kDrive account:
+CopyText = COPY

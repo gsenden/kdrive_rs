@@ -21,3 +21,7 @@ FlowNotStarted = Het authenticatieproces is nog niet gestart.
 NoConfigFolderFound = Geen configuratiemap gevonden.
 AuthenticateWithBrowserMessage = Gebruik de browser om the authenticeren.
 ConnectionError = Verbindings fout
+KDriveLogoAlt = kDrive Logo
+KDriveProductName = KDRIVE
+CopyLinkToBrowser = Als de knop niet werkt kunt u deze link naar uw browser kopiëren en authenticeren met uw kDrive-account:
+CopyText = Kopiëren
