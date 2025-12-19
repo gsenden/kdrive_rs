@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 use oauth2::RedirectUrl;
 use url::Url;
-use crate::domain::errors::*;
+use crate::domain::errors::ServerError;
 use crate::error;
 
 pub struct CallbackEndpoint {

@@ -164,10 +164,10 @@ mod tests {
 
         assert!(matches!(
         store_result,
-        Err(ServerError::Localized {
+        Err(ServerError::Localized(common::domain::errors::LocalizedError {
             key: common::domain::text_keys::TextKeys::MissingStorePort,
             ..
-        })
+        }))
     ));
     }
 

@@ -16,14 +16,14 @@ fn map_engine_error(
     i18n: &impl I18nDrivenPort,
 ) -> Status {
     match err {
-        EngineError::Localized { key, args } => {
+        EngineError::Localized(localized) => {
             let flat_args: Vec<(&'static str, String)> =
-                args.into_iter()
+                localized.args.into_iter()
                     .map(|(param, value)| (param.as_str(), value))
                     .collect();
 
             Status::invalid_argument(
-                i18n.t_with_args(key, &flat_args)
+                i18n.t_with_args(localized.key, &flat_args)
             )
         }
 

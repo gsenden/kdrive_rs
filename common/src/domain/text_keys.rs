@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
 use strum_macros::{Display, EnumIter, VariantNames};
 
-#[derive(EnumIter, Display, VariantNames, Debug)]
+#[derive(EnumIter, Display, VariantNames, Debug, Clone, PartialEq, Deserialize, Serialize)]
 pub enum TextKeys {
     AuthenticateBtn,
     InvalidRedirectUrl,

@@ -40,7 +40,6 @@ impl Configurator {
 
 #[cfg(test)]
 mod tests {
-    use common::domain::text_keys::TextKeys;
     use super::*;
     use crate::domain::default_values::configurator_defaults::*;
     use crate::domain::test_helpers::fake_configurator_adapter::FakeConfiguratorPort;
@@ -85,10 +84,10 @@ mod tests {
 
         assert!(matches!(
         result.unwrap_err(),
-        ServerError::Localized {
-            key: TextKeys::MissingClientId,
-            args
-        } if args.is_empty()
+        ServerError::Localized(common::domain::errors::LocalizedError {
+            key: common::domain::text_keys::TextKeys::MissingClientId,
+            ref args
+        }) if args.is_empty()
     ));
     }
 }
