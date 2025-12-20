@@ -65,7 +65,7 @@ impl TokenStoreDrivenPort for TokenStoreFileAdapter {
         #[cfg(not(unix))]
         {
             fs::write(&path, json).map_err(|e| {
-                ServerError::CouldNotSaveTokenFile(e.to_string())
+                error!(CouldNotSaveTokenFile, Reason => e.to_string())
             })?;
         }
 
