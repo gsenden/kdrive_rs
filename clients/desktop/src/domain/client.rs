@@ -36,10 +36,9 @@ where ServerPort: ServerDrivenPort {
 #[cfg(test)]
 mod tests {
     use crate::domain::client::Client;
-    use crate::domain::errors::ClientError;
     use crate::domain::test_helpers::fake_server_adapter::{FakeServerAdapter, TEST_URL_RESPONSE};
     use crate::domain::view::View;
-    use crate::error;
+
 
     #[tokio::test]
     async fn if_the_server_is_authenticated_then_the_home_page_is_shown() {

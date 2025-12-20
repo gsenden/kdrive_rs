@@ -25,3 +25,5 @@ KDriveLogoAlt = kDrive Logo
 KDriveProductName = KDRIVE
 CopyLinkToBrowser = Als de knop niet werkt kunt u deze link naar uw browser kopiëren en authenticeren met uw kDrive-account:
 CopyText = Kopiëren
+ConnectionErrorMessage = Fout bij het verbinden met de KDrive service op de lokale computer.
+ConnectingToServiceMessage = Bezig met te verbinden met de lokale KDrive service...

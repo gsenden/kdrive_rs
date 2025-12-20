@@ -18,5 +18,10 @@ mod navbar;
 pub use navbar::Navbar;
 
 mod login;
-
 pub use login::Login;
+
+mod connecting_view;
+pub use connecting_view::ConnectingView;
+
+mod error_view;
+pub use error_view::ErrorView;

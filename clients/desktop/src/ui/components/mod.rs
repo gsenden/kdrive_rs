@@ -4,3 +4,5 @@
 
 mod hero;
 pub use hero::Hero;
+mod title_banner;
+pub use title_banner::TitleBanner;

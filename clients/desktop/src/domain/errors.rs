@@ -1,4 +1,3 @@
-use common::adapters::i18n_embedded_adapter::I18nEmbeddedFtlAdapter;
 use common::domain::errors::LocalizedError;
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use serde::{Deserialize, Serialize};

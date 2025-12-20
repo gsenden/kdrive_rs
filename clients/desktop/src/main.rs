@@ -9,7 +9,8 @@ use crate::domain::errors::{translate_error, ClientError};
 use common::adapters::i18n_embedded_adapter::I18nEmbeddedFtlAdapter;
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use common::domain::text_keys::TextKeys;
-use common::domain::text_keys::TextKeys::{ConnectionError, FlowNotStarted};
+use common::domain::text_keys::TextKeys::*;
+use crate::ui::views::{ConnectingView, ErrorView};
 
 mod adapters;
 mod domain;
@@ -38,16 +39,18 @@ fn main() {
     dioxus::launch(App);
 }
 
+async fn create_client() -> Result<Client<GrpcServerAdapter>, ClientError> {
+    let grpc_adapter = GrpcServerAdapter::connect().await?;
+    Ok(Client::new(grpc_adapter))
+}
+
 #[component]
 fn App() -> Element {
     let i18n = use_hook(|| {
         I18nEmbeddedFtlAdapter::load().expect("Failed to load localizations")
     });
 
-    let client_resource = use_resource(|| async {
-        let grpc_adapter = GrpcServerAdapter::connect().await?;
-        Ok::<_, domain::errors::ClientError>(Client::new(grpc_adapter))
-    });
+    let client_resource = use_resource(|| create_client());
 
     rsx! {
         document::Link { rel: "icon", href: FAVICON }
@@ -55,23 +58,14 @@ fn App() -> Element {
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
 
         match &*client_resource.read() {
+            None => rsx! {
+                ConnectingView { i18n: i18n.clone() }
+            },
             Some(Ok(client)) => rsx! {
                 AppWithClient { client: client.clone(), i18n: i18n.clone() }
             },
-            Some(Err(e)) => {
-                rsx! {
-                    div { class: "error",
-                        h1 { {i18n.t(ConnectionError)} }
-                        p { {translate_error(e, &i18n)} }
-                    }
-                }
-            },
-            None => {
-                rsx! {
-                    div { class: "loading",
-                        p { {i18n.t(FlowNotStarted)} }
-                    }
-                }
+            Some(Err(e)) => rsx! {
+                ErrorView { error: e.clone(), i18n: i18n.clone() }
             },
         }
     }

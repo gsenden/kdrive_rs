@@ -25,3 +25,5 @@ KDriveLogoAlt = kDrive Logo
 KDriveProductName = KDRIVE
 CopyLinkToBrowser = If the button does not work you can copy this link to your browser and authenticate with your kDrive account:
 CopyText = COPY
+ConnectionErrorMessage = Error connecting to the KDrive service on your local computer.
+ConnectingToServiceMessage = Connecting to local KDrive service...

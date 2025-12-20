@@ -30,4 +30,6 @@ pub enum TextKeys {
     KDriveProductName,
     CopyLinkToBrowser,
     CopyText,
+    ConnectionErrorMessage,
+    ConnectingToServiceMessage,
 }
