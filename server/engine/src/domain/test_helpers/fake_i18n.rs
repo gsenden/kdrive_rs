@@ -6,10 +6,20 @@ use common::domain::text_keys::TextKeys;
 #[derive(Clone, Debug)]
 pub struct FakeI18n;
 
-impl I18nDrivenPort for FakeI18n {
+impl FakeI18n {
     fn load() -> Result<Self, CommonError> {
         Ok(FakeI18n)
     }
+
+}
+
+impl PartialEq for FakeI18n {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+
+impl I18nDrivenPort for FakeI18n {
 
     fn t(&self, key: TextKeys) -> String {
         // deterministic, makkelijk te testen
