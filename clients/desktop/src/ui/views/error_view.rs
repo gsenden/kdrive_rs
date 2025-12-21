@@ -11,7 +11,7 @@ pub fn ErrorView<I18nPort: I18nDrivenPort + 'static>(error: ClientError, i18n: I
             class: "min-h-screen flex flex-col items-center bg-[#0f1116] p-8 text-white",
 
             div {
-                class: "pt-[25vh] flex flex-col items-center gap-y-10 w-full max-w-xl",
+                class: "pt-[15vh] flex flex-col items-center gap-y-10 w-full max-w-xl",
 
                 TitleBanner { i18n: i18n.clone() },
 

@@ -8,7 +8,7 @@ const KDRIVE_LOGO: Asset = asset!("/assets/kdrive.svg");
 pub fn TitleBanner<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort) -> Element {
     rsx! (
         div {
-            class: "-ml-20 flex items-center gap-x-6",
+            class: "-ml-18 flex items-center gap-x-6",
             img { src: KDRIVE_LOGO, class: "w-16 h-16 object-contain", alt: i18n.t(KDriveLogoAlt)}
             h1 { class: "text-5xl font-bold tracking-tighter", {i18n.t(KDriveProductName)} }
         }

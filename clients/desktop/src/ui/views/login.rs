@@ -67,12 +67,12 @@ fn login_view_content<I18nPort: I18nDrivenPort + 'static>(i18n: &I18nPort, url: 
             class: "min-h-screen flex flex-col items-center bg-[#0f1116] p-8 text-white",
             
             div {
-                class: "pt-[25vh] flex flex-col items-center gap-y-10 w-full max-w-xl",
+                class: "pt-[15vh] flex flex-col items-center gap-y-10 w-full max-w-xl",
             
                 TitleBanner { i18n: i18n.clone() },
             
                 button {
-                    class: "ml-10 mt-10 px-8 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg rounded-xl
+                    class: "ml-10 mt-1 px-8 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg rounded-xl
                             transition-all duration-200 transform active:scale-95 shadow-lg shadow-blue-900/20 cursor-pointer",
                     onclick: move |_| {
                         let _ = webbrowser::open(&url_for_browser);
@@ -91,16 +91,16 @@ fn login_view_content<I18nPort: I18nDrivenPort + 'static>(i18n: &I18nPort, url: 
                 }
 
                 div {
-                    class: "flex gap-2 bg-slate-900/80 p-2 rounded-lg border border-slate-800 items-center",
+                    class: "flex sm:flex-row flex-wrap gap-2 bg-slate-900/80 p-2 rounded-lg border border-slate-800 items-center",
 
                     p {
-                        class: "flex-grow text-blue-400/70 font-mono text-xs",
+                        class: "flex-1 min-w-0 text-blue-400/70 font-mono text-xs break-all",
                         "{url}"
                     }
 
                     button {
-                        class: "px-2 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded
-                                transition-colors duration-200 flex items-center gap-2 border border-slate-700 cursor-pointer",
+                        class: "shrink-0 px-2 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded
+                                transition-colors duration-200 flex items-center gap-2 border border-slate-700",
                         onclick: move |_| {
                             if let Some(cb) = clipboard_handle.write().as_mut() {
                                 let _ = cb.set_text(url_for_clipboard.clone());
