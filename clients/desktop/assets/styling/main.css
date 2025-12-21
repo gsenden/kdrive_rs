@@ -1,9 +1,10 @@
 @font-face {
     font-family: 'suisse-400';
-    src: url('../suisse-intl-400-normal.woff2') format('woff2');
+    src: var(--suisse-font-url) format('woff2');
     font-weight: 400;
+    font-style: normal;
+    font-display: swap;
 }
-
 
 body {
     background-color: #1C1C1E;

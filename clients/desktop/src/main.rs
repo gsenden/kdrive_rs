@@ -35,35 +35,40 @@ enum Route {
         Blog { id: i32 },
 }
 
-const FAVICON: Asset = asset!("/assets/favicon.ico");
 const MAIN_CSS: Asset = asset!("/assets/styling/main.css");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
+const SUISSE_FONT: Asset = asset!("/assets/suisse-intl-400-normal.woff2");
 
 fn main() {
     dioxus::launch(App);
 }
 
-
-
-async fn create_client() -> Result<Client<GrpcServerAdapter>, ClientError> {
-    let grpc_adapter = GrpcServerAdapter::connect().await?;
-    Ok(Client::new(grpc_adapter))
-}
-
 #[component]
 fn App() -> Element {
-    
+    let window = use_window();
 
     let i18n = use_hook(|| {
         I18nEmbeddedFtlAdapter::load().expect("Failed to load localizations")
     });
-    
-    set_icon_and_window_title(i18n.clone());
+
+    let i18n_for_window = i18n.clone();
+    use_effect(move || {
+        window.set_title(&i18n_for_window.t(WindowTitle));
+        window.set_window_icon(Some(load_icon(i18n_for_window.clone())));
+    });
 
     let client_resource = use_resource(|| create_client());
 
+    let font_css = use_memo(|| {
+        format!(":root {{ --suisse-font-url: url({}); }}", SUISSE_FONT)
+    });
+
     rsx! {
-        document::Link { rel: "icon", href: FAVICON }
+        document::Style {
+            r#type: "text/css",
+            {font_css}
+        }
+
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
 
@@ -105,13 +110,9 @@ fn AppWithClient<I18nPort: I18nDrivenPort + 'static>(client: Client<GrpcServerAd
     }
 }
 
-fn set_icon_and_window_title<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort) {
-    let window = use_window();
-
-    use_effect(move || {
-        window.set_title(i18n.t(WindowTitle).as_str());
-        window.set_window_icon(Some(load_icon(i18n.clone())));
-    });
+async fn create_client() -> Result<Client<GrpcServerAdapter>, ClientError> {
+    let grpc_adapter = GrpcServerAdapter::connect().await?;
+    Ok(Client::new(grpc_adapter))
 }
 
 fn load_icon<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort) -> Icon {
