@@ -1,0 +1,1 @@
+&"C:\Program Files\Git\bin\bash.exe" start_test_server.sh
