@@ -27,3 +27,7 @@ CopyLinkToBrowser = Als de knop niet werkt kunt u deze link naar uw browser kopi
 CopyText = Kopiëren
 ConnectionErrorMessage = Fout bij het verbinden met de KDrive service op de lokale computer.
 ConnectingToServiceMessage = Bezig met te verbinden met de lokale KDrive service...
+WindowTitle = KDrive Rust
+FailedToLoadWindowsIcon = Het is mislukt om het Windows icoon te laten
+FailedToLoadMacIcon = Het is mislukt om het Mac icoon te laten
+FailedToLoadLinuxIcon = Het is mislukt om het Linux icoon te laten

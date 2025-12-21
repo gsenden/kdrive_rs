@@ -32,4 +32,8 @@ pub enum TextKeys {
     CopyText,
     ConnectionErrorMessage,
     ConnectingToServiceMessage,
+    WindowTitle,
+    FailedToLoadWindowsIcon,
+    FailedToLoadMacIcon,
+    FailedToLoadLinuxIcon,
 }

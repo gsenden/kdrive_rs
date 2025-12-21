@@ -27,3 +27,7 @@ CopyLinkToBrowser = If the button does not work you can copy this link to your b
 CopyText = COPY
 ConnectionErrorMessage = Error connecting to the KDrive service on your local computer.
 ConnectingToServiceMessage = Connecting to local KDrive service...
+WindowTitle = KDrive Rust
+FailedToLoadWindowsIcon = Failed to load Windows icon
+FailedToLoadMacIcon = Failed to load Mac icon
+FailedToLoadLinuxIcon = Failed to load Linux icon

@@ -1,4 +1,8 @@
+use dioxus::launch;
 use dioxus::prelude::*;
+use dioxus::desktop::{use_window, Config, WindowBuilder};
+use dioxus::desktop::tao::platform::windows::IconExtWindows;
+use dioxus::desktop::tao::window::Icon;
 use ui::views::{Blog, Home, Login, Navbar};
 use domain::client::Client;
 use adapters::grpc_server_adapter::GrpcServerAdapter;
@@ -9,7 +13,7 @@ use crate::domain::errors::{translate_error, ClientError};
 use common::adapters::i18n_embedded_adapter::I18nEmbeddedFtlAdapter;
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use common::domain::text_keys::TextKeys;
-use common::domain::text_keys::TextKeys::*;
+use common::domain::text_keys::TextKeys::{FailedToLoadLinuxIcon, FailedToLoadWindowsIcon, WindowTitle};
 use crate::ui::views::{ConnectingView, ErrorView};
 
 mod adapters;
@@ -39,6 +43,8 @@ fn main() {
     dioxus::launch(App);
 }
 
+
+
 async fn create_client() -> Result<Client<GrpcServerAdapter>, ClientError> {
     let grpc_adapter = GrpcServerAdapter::connect().await?;
     Ok(Client::new(grpc_adapter))
@@ -46,9 +52,13 @@ async fn create_client() -> Result<Client<GrpcServerAdapter>, ClientError> {
 
 #[component]
 fn App() -> Element {
+    
+
     let i18n = use_hook(|| {
         I18nEmbeddedFtlAdapter::load().expect("Failed to load localizations")
     });
+    
+    set_icon_and_window_title(i18n.clone());
 
     let client_resource = use_resource(|| create_client());
 
@@ -92,6 +102,32 @@ fn AppWithClient<I18nPort: I18nDrivenPort + 'static>(client: Client<GrpcServerAd
             },
             None => rsx! { "Loading..." },
         }
+    }
+}
+
+fn set_icon_and_window_title<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort) {
+    let window = use_window();
+
+    use_effect(move || {
+        window.set_title(i18n.t(WindowTitle).as_str());
+        window.set_window_icon(Some(load_icon(i18n.clone())));
+    });
+}
+
+fn load_icon<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort) -> Icon {
+    #[cfg(target_os = "windows")]
+    {
+        Icon::from_path("assets/kdrive_icon.ico", None).expect(i18n.t(FailedToLoadWindowsIcon).as_str())
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        Icon::from_path("assets/kdrive_icon.png", None).expect(i18n.t(FailedToLoadLinuxIcon).as_str())
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        Icon::from_path("assets/kdrive_icon.icns", None).expect(i18n.t(FailedToLoadWindowsIcon).as_str())
     }
 }
 
