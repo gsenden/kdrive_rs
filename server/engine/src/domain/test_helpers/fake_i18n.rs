@@ -1,17 +1,9 @@
 use common::ports::i18n_driven_port::I18nDrivenPort;
-use common::domain::errors::CommonError;
 use common::domain::language::Language;
 use common::domain::text_keys::TextKeys;
 
 #[derive(Clone, Debug)]
 pub struct FakeI18n;
-
-impl FakeI18n {
-    fn load() -> Result<Self, CommonError> {
-        Ok(FakeI18n)
-    }
-
-}
 
 impl PartialEq for FakeI18n {
     fn eq(&self, _: &Self) -> bool {

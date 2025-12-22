@@ -4,7 +4,6 @@ use engine::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
 use serde::{Deserialize, Serialize};
 use dirs::config_dir;
 use std::fs;
-use std::io::Write;
 use std::path::PathBuf;
 use engine::domain::tokens::Tokens;
 use engine::error;
