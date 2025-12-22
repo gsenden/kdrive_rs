@@ -36,4 +36,5 @@ pub enum TextKeys {
     FailedToLoadWindowsIcon,
     FailedToLoadMacIcon,
     FailedToLoadLinuxIcon,
+    AuthFlowCompleted,
 }

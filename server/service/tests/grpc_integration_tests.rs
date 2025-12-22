@@ -14,6 +14,7 @@ use tonic::Request;
 use kdrive_service::error::ServerError;
 use tokio::net::TcpListener;
 use tonic::codegen::tokio_stream::wrappers::TcpListenerStream;
+use adapters::driven::event_bus_adapter::EventBusAdapter;
 use engine::domain::test_helpers::fake_i18n::FakeI18n;
 
 async fn start_test_server() -> Result<(SocketAddr, tokio::task::JoinHandle<()>), ServerError> {
@@ -35,7 +36,8 @@ async fn start_test_server() -> Result<(SocketAddr, tokio::task::JoinHandle<()>)
     let fake_i18n = FakeI18n;
 
     let engine = Engine::new(fake_engine, token_store, fake_events, fake_i18n);
-    let handler = KdriveServiceHandler::new(engine);
+    let event_bus = EventBusAdapter::new();
+    let handler = KdriveServiceHandler::new(engine, event_bus);
 
     let handle = tokio::spawn(async move {
         Server::builder()

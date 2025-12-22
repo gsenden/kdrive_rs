@@ -6,6 +6,8 @@ service KdriveService {
   rpc IsAuthenticated(Empty) returns (AuthStatus);
   rpc StartInitialAuthFlow(Empty) returns (AuthUrlResponse);
   rpc ContinueInitialAuthFlow(Empty) returns (AuthFlowResult);
+
+  rpc SubscribeEvents(Empty) returns (stream ServerEvent);
 }
 
 message Empty {}
@@ -21,3 +23,18 @@ message AuthUrlResponse {
 message AuthFlowResult {
   bool success = 1;
 }
+
+message I18nEvent {
+  string key = 1;
+  map<string, string> args = 2;
+}
+
+message AuthFlowCompleted {}
+
+message ServerEvent {
+  oneof event {
+    AuthFlowCompleted auth_flow_completed = 1;
+    I18nEvent i18n_event = 2;
+  }
+}
+

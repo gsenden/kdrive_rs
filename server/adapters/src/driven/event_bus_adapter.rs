@@ -3,39 +3,30 @@ use engine::domain::errors::ServerError;
 use engine::domain::events::EngineEvent;
 use engine::ports::driven::event_bus_driven_port::EventBusDrivenPort;
 
+use tokio::sync::broadcast;
+
 #[derive(Clone)]
 pub struct EventBusAdapter {
-    events: Arc<Mutex<Vec<EngineEvent>>>,
+    sender: broadcast::Sender<EngineEvent>,
 }
 
 impl EventBusAdapter {
     pub fn new() -> Self {
-        EventBusAdapter {
-            events: Arc::new(Mutex::new(Vec::new())),
-        }
+        let (sender, _) = broadcast::channel(32);
+        Self { sender }
     }
 
-    pub fn get_events(&self) -> Vec<EngineEvent> {
-        self.events
-            .lock()
-            .map(|guard| guard.clone())
-            .unwrap_or_default()
+    pub fn subscribe(&self) -> broadcast::Receiver<EngineEvent> {
+        self.sender.subscribe()
     }
 }
 
 impl EventBusDrivenPort for EventBusAdapter {
     fn emit(&self, event: EngineEvent) -> Result<(), ServerError> {
-        self.events
-            .lock()
-            .map_err(|e| ServerError::Io(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                e.to_string(),
-            )))?
-            .push(event);
+        let _ = self.sender.send(event);
         Ok(())
     }
 }
-
 #[cfg(test)]
 // adapters/src/driven/event_bus_adapter_test.rs
 mod tests {
@@ -43,49 +34,50 @@ mod tests {
     use crate::driven::event_bus_adapter::EventBusAdapter;
     use engine::ports::driven::event_bus_driven_port::EventBusDrivenPort;
 
-    #[test]
-    fn event_bus_adapter_can_receive_event() {
-        // Given an EventBusAdapter
-        let adapter = EventBusAdapter::new();
+    #[tokio::test]
+    async fn event_bus_adapter_emits_event_to_subscriber() {
+        // Given
+        let bus = EventBusAdapter::new();
+        let mut rx = bus.subscribe();
 
-        // When we emit an AuthFlowCompleted event
-        adapter.emit(EngineEvent::AuthFlowCompleted).unwrap();
+        // When
+        bus.emit(EngineEvent::AuthFlowCompleted).unwrap();
 
-        // Then we can retrieve the event
-        let events = adapter.get_events();
-        assert!(events.contains(&EngineEvent::AuthFlowCompleted));
+        // Then
+        let received = rx.recv().await.unwrap();
+        assert_eq!(received, EngineEvent::AuthFlowCompleted);
     }
 
-    #[test]
-    fn event_bus_adapter_handles_concurrent_access() {
-        // Given an EventBusAdapter
-        let adapter = EventBusAdapter::new();
+    #[tokio::test]
+    async fn event_bus_adapter_handles_concurrent_access() {
+        let bus = EventBusAdapter::new();
+        let mut rx = bus.subscribe();
 
-        // When multiple threads try to emit events concurrently
         let mut handles = vec![];
+
         for i in 0..10 {
-            let adapter_clone = adapter.clone();
-            let handle = std::thread::spawn(move || {
+            let bus = bus.clone();
+            handles.push(tokio::spawn(async move {
                 let event = if i % 2 == 0 {
                     EngineEvent::AuthFlowCompleted
                 } else {
                     EngineEvent::AuthFlowFailed {
-                        reason: format!("error {}", i)
+                        reason: format!("error {}", i),
                     }
                 };
-                adapter_clone.emit(event).unwrap();
-            });
-            handles.push(handle);
+                bus.emit(event).unwrap();
+            }));
         }
 
-        for handle in handles {
-            handle.join().unwrap();
+        for h in handles {
+            h.await.unwrap();
         }
 
-        // Then all events are stored safely
-        let events = adapter.get_events();
-        assert_eq!(events.len(), 10);
+        let mut received = vec![];
+        for _ in 0..10 {
+            received.push(rx.recv().await.unwrap());
+        }
+
+        assert_eq!(received.len(), 10);
     }
-
-
 }

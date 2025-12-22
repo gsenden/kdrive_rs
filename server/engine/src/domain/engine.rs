@@ -16,7 +16,7 @@ where
     authenticator_driven_port: AuthPort,
     #[allow(dead_code)]
     token_store: TokenPort,
-    event_bus: EventPort,
+    pub event_bus: EventPort,
     #[allow(dead_code)]
     pub i18n_port: I18NPort
 }

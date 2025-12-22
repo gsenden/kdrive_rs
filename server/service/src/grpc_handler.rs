@@ -1,15 +1,29 @@
+use std::collections::HashMap;
+use std::pin::Pin;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tonic::{Request, Response, Status};
+use tonic::codegen::tokio_stream::Stream;
+use adapters::driven::event_bus_adapter::EventBusAdapter;
+use common::domain::text_keys::TextKeys;
 use engine::domain::engine::Engine;
 use engine::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 use engine::ports::driven::event_bus_driven_port::EventBusDrivenPort;
 use engine::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
 use engine::ports::driving::token_store_driving_port::TokenStoreDrivingPort;
 use crate::kdrive::kdrive_service_server::KdriveService;
-use crate::kdrive::{Empty, AuthStatus, AuthUrlResponse, AuthFlowResult};
+use crate::kdrive::{Empty, AuthStatus, AuthUrlResponse, AuthFlowResult, I18nEvent, ServerEvent, AuthFlowCompleted};
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use engine::domain::errors::ServerError as EngineError;
+use engine::domain::events::EngineEvent;
+use engine::domain::events::EngineEvent::AuthFlowFailed;
+use tokio_stream::wrappers::BroadcastStream;
+use futures_util::StreamExt;
+use common::domain::errors::ErrorParam;
+use common::localized_error;
+use crate::kdrive::server_event::Event as ServerEventKind;
+
+type EventStream = Pin<Box<dyn Stream<Item = Result<ServerEvent, Status>> + Send>>;
 
 fn map_engine_error(
     err: EngineError,
@@ -31,6 +45,22 @@ fn map_engine_error(
     }
 }
 
+fn engine_event_to_i18n(
+    event: EngineEvent,
+) -> I18nEvent {
+    match event {
+        EngineEvent::AuthFlowCompleted => I18nEvent {
+            key: TextKeys::AuthFlowCompleted.to_string(),
+            args: Default::default(),
+        },
+
+        EngineEvent::AuthFlowFailed { reason } => I18nEvent {
+            key: TextKeys::TokenRequestFailed.to_string(),
+            args: [("reason".to_string(), reason)].into(),
+        },
+    }
+}
+
 pub struct KdriveServiceHandler<AuthPort, TokenPort, EventPort, I18NPort>
 where
     AuthPort: AuthenticatorDrivenPort,
@@ -39,6 +69,7 @@ where
     I18NPort: I18nDrivenPort
 {
     engine: Arc<Mutex<Engine<AuthPort, TokenPort, EventPort, I18NPort>>>,
+    event_bus: EventBusAdapter,
 }
 
 impl<AuthPort, TokenPort, EventPort, I18NPort> KdriveServiceHandler<AuthPort, TokenPort, EventPort, I18NPort>
@@ -48,15 +79,21 @@ where
     EventPort: EventBusDrivenPort,
     I18NPort: I18nDrivenPort
 {
-    pub fn new(engine: Engine<AuthPort, TokenPort, EventPort, I18NPort>) -> Self {
+    pub fn new(
+        engine: Engine<AuthPort, TokenPort, EventPort, I18NPort>,
+        event_bus: EventBusAdapter)
+        -> Self
+    {
         KdriveServiceHandler {
             engine: Arc::new(Mutex::new(engine)),
+            event_bus,
         }
     }
 }
 
 #[tonic::async_trait]
-impl<AuthPort, TokenPort, EventPort, I18NPort> KdriveService for KdriveServiceHandler<AuthPort, TokenPort, EventPort, I18NPort>
+impl<AuthPort, TokenPort, EventPort, I18NPort>
+    KdriveService for KdriveServiceHandler<AuthPort, TokenPort, EventPort, I18NPort>
 where
     AuthPort: AuthenticatorDrivenPort + Send + Sync + 'static,
     TokenPort: TokenStoreDrivingPort + Send + Sync + 'static,
@@ -69,7 +106,6 @@ where
             is_authenticated: engine.is_authenticated(),
         }))
     }
-
     async fn start_initial_auth_flow(
         &self,
         _request: Request<Empty>,
@@ -95,11 +131,57 @@ where
             // Err(e) => Err(Status::internal(e.to_string())),
         }
     }
+
+    type SubscribeEventsStream = EventStream;
+
+    async fn subscribe_events(&self, _request: Request<Empty>)
+        -> Result<Response<EventStream>, Status>
+    {
+        let receiver = self.event_bus.subscribe();
+
+        let stream = BroadcastStream::new(receiver)
+            .filter_map(|event| async move {
+                match event {
+                    Ok(EngineEvent::AuthFlowCompleted) => {
+                        Some(Ok(ServerEvent {
+                            event: Some(ServerEventKind::AuthFlowCompleted(AuthFlowCompleted {})),
+                        }))
+                    }
+
+                    Ok(EngineEvent::AuthFlowFailed { reason }) => {
+                        let localized = localized_error!(
+                            TokenRequestFailed,
+                            Reason => reason
+                        );
+
+                        let i18n_event = I18nEvent {
+                            key: localized.key.to_string(),
+                            args: localized
+                                .args
+                                .into_iter()
+                                .map(|(p, v): (ErrorParam, String)| {
+                                    (p.as_str().to_string(), v)
+                                })
+                                .collect::<HashMap<String, String>>(),
+                        };
+
+                        Some(Ok(ServerEvent {
+                            event: Some(ServerEventKind::I18nEvent(i18n_event)),
+                        }))
+                    }
+
+                    Err(_) => None,
+                }
+            });
+
+        Ok(Response::new(Box::pin(stream)))
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use tonic::Request;
+    use adapters::driven::event_bus_adapter::EventBusAdapter;
     use engine::domain::engine::Engine;
     use engine::domain::test_helpers::fake_authenticator_adapter::FakeAuthenticatorDrivenAdapter;
     use engine::domain::test_helpers::fake_event_bus::FakeEventBus;
@@ -125,7 +207,8 @@ mod tests {
         let fake_events = FakeEventBus::new();
         let i18n = FakeI18n;
         let engine = Engine::new(fake_engine, token_store, fake_events, i18n);
-        let handler = KdriveServiceHandler::new(engine);
+        let event_bus = EventBusAdapter::new();
+        let handler = KdriveServiceHandler::new(engine, event_bus);
 
         // When we call check_authentication
         let request = Request::new(Empty {});
@@ -148,7 +231,8 @@ mod tests {
         let fake_events = FakeEventBus::new();
         let i18n = FakeI18n;
         let engine = Engine::new(fake_engine, token_store, fake_events, i18n);
-        let handler = KdriveServiceHandler::new(engine);
+        let event_bus = EventBusAdapter::new();
+        let handler = KdriveServiceHandler::new(engine, event_bus);
 
         // When we call start_auth_flow
         let request = Request::new(Empty {});
@@ -171,7 +255,9 @@ mod tests {
         let fake_events = FakeEventBus::new();
         let i18n = FakeI18n;
         let engine = Engine::new(fake_engine, token_store, fake_events, i18n);
-        let handler = KdriveServiceHandler::new(engine);
+        let event_bus = EventBusAdapter::new();
+        let handler = KdriveServiceHandler::new(engine, event_bus);
+
 
         // Start the flow first
         handler.start_initial_auth_flow(Request::new(Empty {})).await.unwrap();
@@ -197,7 +283,8 @@ mod tests {
         let fake_events = FakeEventBus::new();
         let i18n = FakeI18n;
         let engine = Engine::new(fake_engine, token_store, fake_events, i18n);
-        let handler = KdriveServiceHandler::new(engine);
+        let event_bus = EventBusAdapter::new();
+        let handler = KdriveServiceHandler::new(engine, event_bus);
 
         // When we call complete_auth_flow without starting flow
         let request = Request::new(Empty {});

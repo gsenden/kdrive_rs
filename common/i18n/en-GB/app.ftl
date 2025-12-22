@@ -31,3 +31,4 @@ WindowTitle = KDrive Rust
 FailedToLoadWindowsIcon = Failed to load Windows icon
 FailedToLoadMacIcon = Failed to load Mac icon
 FailedToLoadLinuxIcon = Failed to load Linux icon
+AuthFlowCompleted = KDrive Rust is now authenticated
