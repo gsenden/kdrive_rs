@@ -1,17 +1,18 @@
+use std::sync::Arc;
 use common::domain::text_keys::TextKeys::{AuthenticateBtn, CopyLinkToBrowser, CopyText};
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use dioxus::prelude::*;
 use common::domain::errors::ApplicationError;
-use crate::adapters::grpc_server_adapter::GrpcServerAdapter;
 use crate::domain::client::Client;
 use crate::ports::driven::server_driven_port::ServerDrivenPort;
+use crate::ports::driving::ui_driving_port::UIDrivingPort;
 use crate::ui::views::{ConnectingView, ErrorView};
 use crate::ui::components::TitleBanner;
 
 #[component]
 pub fn Login<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort) -> Element {
-    let client = use_context::<Client<GrpcServerAdapter>>();
-    let auth_result = get_auth_result(client);
+    let ui_port = use_context::<Arc<dyn UIDrivingPort>>();
+    let auth_result = get_auth_result(ui_port);
 
     rsx! {
         LoginView {
@@ -22,26 +23,23 @@ pub fn Login<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort) -> Element {
 
 }
 
-pub fn get_auth_result<P>(client: Client<P>) -> Signal<Option<Result<String, ApplicationError>>>
-where
-    P: ServerDrivenPort + Clone + PartialEq + 'static,
+pub fn get_auth_result(ui_port: Arc<dyn UIDrivingPort>)
+    -> Signal<Option<Result<String, ApplicationError>>> 
 {
-    let auth_result =
-        use_signal::<Option<Result<String, ApplicationError>>>(|| None);
+    let auth_result = use_signal(|| None);
 
     use_effect(move || {
-        let client = client.clone();
+        let ui = ui_port.clone();
         let mut auth_result = auth_result.clone();
 
         spawn(async move {
-            let result = client.on_login_view_shown().await;
+            let result = ui.on_login_view_shown().await;
             auth_result.set(Some(result));
         });
     });
 
     auth_result
 }
-
 
 #[component]
 fn LoginView<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort, auth_result: Signal<Option<Result<String, ApplicationError>>>) -> Element {

@@ -16,6 +16,10 @@ use common::domain::text_keys::TextKeys::FailedToLoadWindowsIcon;
 use common::domain::text_keys::TextKeys::FailedToLoadLinuxIcon;
 use common::domain::text_keys::TextKeys::WindowTitle;
 use crate::ui::views::{ConnectingView, ErrorView};
+use crate::ports::driving::ui_driving_port::UIDrivingPort;
+use std::sync::Arc;
+use crate::adapters::dioxus_ui_adapter::DioxusUIAdapter;
+
 
 mod adapters;
 mod domain;
@@ -89,7 +93,8 @@ fn App() -> Element {
 
 #[component]
 fn AppWithClient<I18nPort: I18nDrivenPort + 'static>(client: Client<GrpcServerAdapter>, i18n: I18nPort) -> Element {
-    use_context_provider(|| client.clone());
+    let ui_adapter = DioxusUIAdapter::new(client.clone());
+    use_context_provider(|| Arc::new(ui_adapter) as Arc<dyn UIDrivingPort>);
 
     let view = use_resource(move || {
         let client = client.clone();
