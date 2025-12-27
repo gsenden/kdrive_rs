@@ -1,6 +1,6 @@
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use dioxus::prelude::*;
-use common::domain::errors::{translate_error, ApplicationError};
+use common::domain::errors::ApplicationError;
 use common::domain::text_keys::TextKeys::ConnectionError;
 use crate::ui::components::TitleBanner;
 
@@ -35,7 +35,7 @@ pub fn ErrorView<I18nPort: I18nDrivenPort + 'static>(error: ApplicationError, i1
 
                 p {
                     class: "mt-3 text-sm text-slate-400",
-                    {translate_error(&error, &i18n)}
+                    {error.translate(&i18n)}
                 }
             }
         }

@@ -2,11 +2,12 @@
 use async_trait::async_trait;
 use oauth2::{AuthUrl, ClientId, RedirectUrl, TokenUrl};
 use url::Url;
-use crate::domain::errors::ServerError;
+use common::application_error;
+use common::domain::errors::ApplicationError;
+use common::domain::text_keys::TextKeys::{FlowNotStarted, InvalidRedirectUrl};
 use crate::domain::test_helpers::fake_configurator_adapter::FakeConfiguratorPort;
 use crate::domain::test_helpers::fake_token_store_adapter::*;
 use crate::domain::tokens::Tokens;
-use crate::error;
 use crate::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 use crate::ports::driven::configurator_driven_port::ConfiguratorPort;
 
@@ -51,25 +52,25 @@ impl FakeAuthenticatorDrivenAdapter {
 
 #[async_trait]
 impl AuthenticatorDrivenPort for FakeAuthenticatorDrivenAdapter {
-    async fn start_initial_auth_flow(&mut self) -> Result<String, ServerError> {
+    async fn start_initial_auth_flow(&mut self) -> Result<String, ApplicationError> {
         let mut url = Url::parse(self.auth_url.as_str())
 
-            .map_err(|e| error!(InvalidRedirectUrl, Url => e.to_string()))?;
+            .map_err(|e| application_error!(InvalidRedirectUrl, e.to_string()))?;
         url.query_pairs_mut()
             .append_pair("client_id", self.client_id.as_str());
         Ok(url.to_string())
     }
 
-    async fn continue_initial_auth_flow(&mut self) -> Result<bool, ServerError> {
+    async fn continue_initial_auth_flow(&mut self) -> Result<bool, ApplicationError> {
         if self.should_fail {
-            return Err(error!(FlowNotStarted));
+            return Err(application_error!(FlowNotStarted));
         }
         Ok(true)
     }
 
-    async fn get_tokens(&self) -> Result<Tokens, ServerError> {
+    async fn get_tokens(&self) -> Result<Tokens, ApplicationError> {
         if self.should_fail {
-            return Err(error!(FlowNotStarted));
+            return Err(application_error!(FlowNotStarted));
         }
         Ok(Tokens {
             access_token: TEST_RING_ACCESS_TOKEN.parse().unwrap(),

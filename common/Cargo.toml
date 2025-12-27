@@ -16,6 +16,13 @@ thiserror = "2.0.17"
 fluent-bundle = "0.16.0"
 serde = { version = "1.0.228", features = ["derive"] }
 i18n_loader = { path = "i18n_loader" }
+oauth2 = "5.0.0"
+tokio = "1.48.0"
+prost = "0.14"
+prost-types = "0.14"
+tonic = { version = "0.14.2", features = ["transport"] }
+tonic-prost = "0.14"
 
 [build-dependencies]
 i18n_loader = { path = "i18n_loader" }
+tonic-prost-build = "0.14.2"

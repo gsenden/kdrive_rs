@@ -1,4 +1,4 @@
-use crate::domain::errors::ServerError;
+use common::domain::errors::ApplicationError;
 use crate::domain::events::EngineEvent;
 use crate::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 use crate::ports::driven::event_bus_driven_port::EventBusDrivenPort;
@@ -44,11 +44,11 @@ where
 
     }
 
-    pub async fn start_initial_auth_flow(&mut self) -> Result<String, ServerError> {
+    pub async fn start_initial_auth_flow(&mut self) -> Result<String, ApplicationError> {
         self.authenticator_driven_port.start_initial_auth_flow().await
     }
 
-    pub async fn continue_initial_auth_flow(&mut self) -> Result<bool, ServerError> {
+    pub async fn continue_initial_auth_flow(&mut self) -> Result<bool, ApplicationError> {
         let result = self.authenticator_driven_port.continue_initial_auth_flow().await;
         match result {
             Ok(result) => {
@@ -58,7 +58,7 @@ where
                 Ok(result)
             }
             Err(error) => {
-                self.event_bus.emit(EngineEvent::AuthFlowFailed {reason: error.to_string()})?;
+                self.event_bus.emit(EngineEvent::AuthFlowFailed {reason: error.clone()})?;
                 Err(error)
             }
         }

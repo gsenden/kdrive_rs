@@ -1,8 +1,9 @@
-use engine::domain::errors::ServerError;
+
 use engine::domain::events::EngineEvent;
 use engine::ports::driven::event_bus_driven_port::EventBusDrivenPort;
 
 use tokio::sync::broadcast;
+use common::domain::errors::ApplicationError;
 
 #[derive(Clone)]
 pub struct EventBusAdapter {
@@ -21,7 +22,7 @@ impl EventBusAdapter {
 }
 
 impl EventBusDrivenPort for EventBusAdapter {
-    fn emit(&self, event: EngineEvent) -> Result<(), ServerError> {
+    fn emit(&self, event: EngineEvent) -> Result<(), ApplicationError> {
         let _ = self.sender.send(event);
         Ok(())
     }
@@ -29,6 +30,8 @@ impl EventBusDrivenPort for EventBusAdapter {
 #[cfg(test)]
 // adapters/src/driven/event_bus_adapter_test.rs
 mod tests {
+    use common::application_error;
+    use common::domain::text_keys::TextKeys::TokenRequestFailed;
     use engine::domain::events::EngineEvent;
     use crate::driven::event_bus_adapter::EventBusAdapter;
     use engine::ports::driven::event_bus_driven_port::EventBusDrivenPort;
@@ -60,8 +63,12 @@ mod tests {
                 let event = if i % 2 == 0 {
                     EngineEvent::AuthFlowCompleted
                 } else {
+
                     EngineEvent::AuthFlowFailed {
-                        reason: format!("error {}", i),
+                        reason: application_error!(
+                            TokenRequestFailed,
+                            format!("error {}", i)
+                        )
                     }
                 };
                 bus.emit(event).unwrap();

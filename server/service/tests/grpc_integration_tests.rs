@@ -1,5 +1,4 @@
-use kdrive_service::kdrive::kdrive_service_client::KdriveServiceClient;
-use kdrive_service::kdrive::Empty;
+
 use engine::domain::engine::Engine;
 use engine::domain::test_helpers::fake_authenticator_adapter::FakeAuthenticatorDrivenAdapter;
 use engine::domain::test_helpers::fake_event_bus::FakeEventBus;
@@ -11,13 +10,16 @@ use kdrive_service::grpc_handler::KdriveServiceHandler;
 use tonic::transport::Server;
 use std::net::SocketAddr;
 use tonic::Request;
-use kdrive_service::error::ServerError;
 use tokio::net::TcpListener;
 use tonic::codegen::tokio_stream::wrappers::TcpListenerStream;
 use adapters::driven::event_bus_adapter::EventBusAdapter;
+use common::domain::errors::ApplicationError;
+use common::kdrive::Empty;
+use common::kdrive::kdrive_service_client::KdriveServiceClient;
+use common::kdrive::kdrive_service_server::KdriveServiceServer;
 use engine::domain::test_helpers::fake_i18n::FakeI18n;
 
-async fn start_test_server() -> Result<(SocketAddr, tokio::task::JoinHandle<()>), ServerError> {
+async fn start_test_server() -> Result<(SocketAddr, tokio::task::JoinHandle<()>), ApplicationError> {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
 
@@ -42,7 +44,7 @@ async fn start_test_server() -> Result<(SocketAddr, tokio::task::JoinHandle<()>)
     let handle = tokio::spawn(async move {
         Server::builder()
             .add_service(
-                kdrive_service::kdrive::kdrive_service_server::KdriveServiceServer::new(
+                KdriveServiceServer::new(
                     handler,
                 ),
             )

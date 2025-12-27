@@ -1,4 +1,4 @@
-use common::domain::text_keys::TextKeys::{AuthenticateBtn, AuthenticateWithBrowserMessage, CopyLinkToBrowser, CopyText, KDriveLogoAlt, KDriveProductName};
+use common::domain::text_keys::TextKeys::{AuthenticateBtn, CopyLinkToBrowser, CopyText};
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use dioxus::prelude::*;
 use common::domain::errors::ApplicationError;
@@ -54,7 +54,7 @@ fn LoginView<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort, auth_result: Si
 
     rsx! { {content} }
 }
-const KDRIVE_LOGO: Asset = asset!("/assets/kdrive.svg");
+// const KDRIVE_LOGO: Asset = asset!("/assets/kdrive.svg");
 
 fn login_view_content<I18nPort: I18nDrivenPort + 'static>(i18n: &I18nPort, url: String) -> Element {
     let url_for_browser = url.clone();
@@ -139,20 +139,20 @@ mod tests {
     }
 
     #[test]
-    fn login_view_shows_authenticate_with_browser_message() {
+    fn login_view_shows_connecting_message_when_auth_result_is_none() {
         let i18n = I18nEmbeddedFtlAdapter::load();
 
         let html = render_element(rsx! {
-            TestLoginView {
-                initial: None::<Result<String, ApplicationError>>
-            }
-        });
+        TestLoginView {
+            initial: None::<Result<String, ApplicationError>>
+        }
+    });
 
-        let expected = i18n.t(AuthenticateWithBrowserMessage);
+        let expected = i18n.t(ConnectingToServiceMessage);
 
         assert!(
             html.contains(&expected),
-            "Expected auth message '{}', got HTML: {}",
+            "Expected connecting message '{}', got HTML: {}",
             expected,
             html
         );

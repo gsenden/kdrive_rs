@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
-use crate::domain::errors::ServerError;
-use crate::error;
+use common::application_error;
+use common::domain::errors::ApplicationError;
+use common::domain::text_keys::TextKeys::MissingStorePort;
 use crate::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
 use crate::ports::driving::token_store_driving_port::TokenStoreDrivingPort;
 
@@ -25,14 +26,14 @@ impl<TRP: TokenStoreDrivenPort, TFP: TokenStoreDrivenPort> TokenStoreDrivenPort 
         }
     }
 
-    fn load(&self) -> Result<Option<Tokens>, ServerError> {
+    fn load(&self) -> Result<Option<Tokens>, ApplicationError> {
         match self {
             ActivePort::KeyRing(p) => p.load(),
             ActivePort::File(p) => p.load(),
         }
     }
 
-    fn save(&self, tokens: &Tokens) -> Result<(), ServerError> {
+    fn save(&self, tokens: &Tokens) -> Result<(), ApplicationError> {
         match self {
             ActivePort::KeyRing(p) => p.save(tokens),
             ActivePort::File(p) => p.save(tokens),
@@ -51,24 +52,22 @@ where
 }
 
 impl <TRP: TokenStoreDrivenPort, TFP: TokenStoreDrivenPort>TokenStore<TRP, TFP> {
-    pub fn new(
-        tokens: Tokens,
-        key_ring_store: Option<TRP>,
-        file_store: Option<TFP>
-    ) -> Result<Self, ServerError> {
+    pub fn new(tokens: Tokens, key_ring_store: Option<TRP>, file_store: Option<TFP>) 
+        -> Result<Self, ApplicationError> 
+    {
         let port = TokenStore::choose_port(key_ring_store, file_store)?;
         Ok(TokenStore {tokens: Some(tokens), port})
     }
 
-    pub fn load(key_ring_store: Option<TRP>,
-                file_store: Option<TFP>) -> Result<Self, ServerError> {
+    pub fn load(key_ring_store: Option<TRP>, file_store: Option<TFP>) 
+        -> Result<Self, ApplicationError> {
         let port = TokenStore::choose_port(key_ring_store, file_store)?;
         let tokens = port.load()?;
         Ok(TokenStore {tokens, port})
     }
 
-    fn choose_port(key_ring_store: Option<TRP>,   file_store: Option<TFP>)
-                   -> Result<ActivePort<TRP, TFP>, ServerError>
+    fn choose_port(key_ring_store: Option<TRP>,   file_store: Option<TFP>) 
+        -> Result<ActivePort<TRP, TFP>, ApplicationError>
     {
         if let Some(key_ring_store) = key_ring_store {
             if key_ring_store.is_available() {
@@ -81,7 +80,7 @@ impl <TRP: TokenStoreDrivenPort, TFP: TokenStoreDrivenPort>TokenStore<TRP, TFP> 
                 return Ok(ActivePort::File(file_store))
             }
         }
-        Err(error!(MissingStorePort))
+        Err(application_error!(MissingStorePort))
     }
 }
 
@@ -114,7 +113,7 @@ for TokenStore<TRP, TFP>
         }
     }
 
-    fn save_tokens(&mut self, tokens: &Tokens) -> Result<(), ServerError> {
+    fn save_tokens(&mut self, tokens: &Tokens) -> Result<(), ApplicationError> {
         self.port.save(tokens)?;
         self.tokens = Some(tokens.clone());
         Ok(())
@@ -123,7 +122,6 @@ for TokenStore<TRP, TFP>
 
 #[cfg(test)]
 mod tests {
-    use crate::domain::errors::ServerError;
     use crate::domain::test_helpers::fake_token_store_adapter::*;
     use crate::domain::test_helpers::test_store::TestStore;
     use crate::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
@@ -162,13 +160,12 @@ mod tests {
 
         let store_result = TestStore::new(tokens, None, None);
 
-        assert!(matches!(
-        store_result,
-        Err(ServerError::Localized(common::domain::errors::LocalizedError {
-            key: common::domain::text_keys::TextKeys::MissingStorePort,
-            ..
-        }))
-    ));
+        let err = store_result.expect_err("Expected MissingStorePort error");
+
+        assert_eq!(
+            err.text_key,
+            common::domain::text_keys::TextKeys::MissingStorePort
+        );
     }
 
     // access_token

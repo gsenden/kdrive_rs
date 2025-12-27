@@ -1,9 +1,8 @@
-// engine/src/domain/test_helpers/fake_configurator_adapter.rs
 use oauth2::{AuthUrl, ClientId, RedirectUrl, TokenUrl};
+use common::domain::errors::ApplicationError;
 use crate::domain::configuration::Configuration;
 use crate::domain::default_values::configurator_defaults::*;
 use crate::ports::driven::configurator_driven_port::ConfiguratorPort;
-use crate::domain::errors::ServerError;
 
 pub struct FakeConfiguratorPort {
     client_id: String,
@@ -24,7 +23,7 @@ impl FakeConfiguratorPort {
 }
 
 impl ConfiguratorPort for FakeConfiguratorPort {
-    fn load(&self) -> Result<Configuration, ServerError> {
+    fn load(&self) -> Result<Configuration, ApplicationError> {
         Ok(Configuration {
             auth_url: AuthUrl::new(DEFAULT_AUTH_URL.to_string())?,
             token_url: TokenUrl::new(DEFAULT_TOKEN_URL.to_string())?,

@@ -1,7 +1,7 @@
 use crate::domain::events::EngineEvent;
 use crate::ports::driven::event_bus_driven_port::EventBusDrivenPort;
 use std::sync::{Arc, Mutex};
-use crate::domain::errors::ServerError;
+use common::domain::errors::ApplicationError;
 
 #[derive(Clone)]
 pub struct FakeEventBus {
@@ -21,7 +21,7 @@ impl FakeEventBus {
 }
 
 impl EventBusDrivenPort for FakeEventBus {
-    fn emit(&self, event: EngineEvent) -> Result<(), ServerError> {
+    fn emit(&self, event: EngineEvent) -> Result<(), ApplicationError> {
         self.events.lock().unwrap().push(event);
         Ok(())
     }

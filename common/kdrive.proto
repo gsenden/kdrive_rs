@@ -31,10 +31,15 @@ message I18nEvent {
 
 message AuthFlowCompleted {}
 
+message ApplicationErrorEvent {
+  string key = 1;
+  map<string, string> args = 2;
+}
+
 message ServerEvent {
   oneof event {
     AuthFlowCompleted auth_flow_completed = 1;
-    I18nEvent i18n_event = 2;
+    ApplicationErrorEvent error = 2;
   }
 }
 

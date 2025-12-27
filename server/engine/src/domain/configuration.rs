@@ -1,7 +1,8 @@
 use oauth2::{AuthUrl, ClientId, RedirectUrl, TokenUrl};
+use common::application_error;
+use common::domain::errors::ApplicationError;
+use common::domain::text_keys::TextKeys::{MissingClientId, MissingRedirectUrl};
 use crate::domain::default_values::configurator_defaults::{DEFAULT_CLIENT_ID};
-use crate::domain::errors::ServerError;
-use crate::error;
 use crate::ports::driven::configurator_driven_port::ConfiguratorPort;
 
 #[derive(Debug, Clone)]
@@ -18,15 +19,15 @@ pub struct Configurator {
 }
 
 impl Configurator {
-    pub fn load<P: ConfiguratorPort>(port: &P) -> Result<Self, ServerError> {
+    pub fn load<P: ConfiguratorPort>(port: &P) -> Result<Self, ApplicationError> {
         let config = port.load()?;
 
         if config.client_id.as_str() == DEFAULT_CLIENT_ID {
-            return Err(error!(MissingClientId));
+            return Err(application_error!(MissingClientId));
         }
 
         if config.redirect_url.as_str().is_empty() {
-            return Err(error!(MissingRedirectUrl));
+            return Err(application_error!(MissingRedirectUrl));
         }
 
         Ok(Configurator { config })
@@ -82,12 +83,8 @@ mod tests {
 
         let result = Configurator::load(&port);
 
-        assert!(matches!(
-        result.unwrap_err(),
-        ServerError::Localized(common::domain::errors::LocalizedError {
-            key: common::domain::text_keys::TextKeys::MissingClientId,
-            ref args
-        }) if args.is_empty()
-    ));
+        let err = result.expect_err("Expected MissingClientId error");
+
+        assert_eq!(err.text_key,MissingClientId);
     }
 }

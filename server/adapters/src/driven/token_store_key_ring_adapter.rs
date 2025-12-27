@@ -1,10 +1,11 @@
 use engine::domain::default_values::general_defaults::*;
-use engine::domain::errors::ServerError;
 use engine::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
 use serde::{Deserialize, Serialize};
 use keyring::Entry;
+use common::application_error;
+use common::domain::errors::ApplicationError;
+use common::domain::text_keys::TextKeys::{CouldNotAccessKeyring, CouldNotParseJson, CouldNotReadTokensFromKeyring, CouldNotSaveTokensToKeyring, CouldNotSerializeTokens};
 use engine::domain::tokens::Tokens;
-use engine::error;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TokenStoreKeyRingAdapter;
@@ -14,9 +15,9 @@ impl TokenStoreDrivenPort for TokenStoreKeyRingAdapter {
         Entry::new(KEYRING_SERVICE, KEYRING_USER).is_ok()
     }
 
-    fn load(&self) -> Result<Option<Tokens>, ServerError> {
+    fn load(&self) -> Result<Option<Tokens>, ApplicationError> {
         let entry = Entry::new(KEYRING_SERVICE, KEYRING_USER)
-            .map_err(|e| error!(CouldNotAccessKeyring, Reason => e.to_string()) )?;
+            .map_err(|e| application_error!(CouldNotAccessKeyring, e.to_string()) )?;
 
         let json = match entry.get_password() {
             Ok(json) => json,
@@ -24,28 +25,28 @@ impl TokenStoreDrivenPort for TokenStoreKeyRingAdapter {
                 if error.to_string().contains("No matching entry") {
                     return Ok(None);
                 }
-                return Err( error!(CouldNotReadTokensFromKeyring, Reason => error.to_string()) );
+                return Err( application_error!(CouldNotReadTokensFromKeyring, error.to_string()) );
             }
         };
 
         let tokens: Tokens = serde_json::from_str(&json).map_err(|e| {
-            error!(CouldNotParseJson, Reason => e.to_string())
+            application_error!(CouldNotParseJson, e.to_string())
         })?;
 
         Ok(Some(tokens))
     }
 
-    fn save(&self, tokens: &Tokens) -> Result<(), ServerError> {
+    fn save(&self, tokens: &Tokens) -> Result<(), ApplicationError> {
         let entry = Entry::new(KEYRING_SERVICE, KEYRING_USER)
-            .map_err(|e| error!(CouldNotAccessKeyring, Reason => e.to_string()) )?;
+            .map_err(|e| application_error!(CouldNotAccessKeyring, e.to_string()) )?;
 
         let json = serde_json::to_string(tokens).map_err(|e| {
-            error!(CouldNotSerializeTokens, Reason => e.to_string())
+            application_error!(CouldNotSerializeTokens, e.to_string())
         })?;
 
         entry
             .set_password(&json)
-            .map_err(|e| error!(CouldNotSaveTokensToKeyring, Reason => e.to_string()) )?;
+            .map_err(|e| application_error!(CouldNotSaveTokensToKeyring, e.to_string()) )?;
 
         Ok(())
     }

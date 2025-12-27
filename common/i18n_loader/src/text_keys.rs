@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use strum_macros::{Display, EnumIter, VariantNames};
+use strum_macros::{Display, EnumIter, EnumString, VariantNames};
 
 #[derive(
     EnumIter,
@@ -11,7 +11,8 @@ use strum_macros::{Display, EnumIter, VariantNames};
     PartialEq,
     Deserialize,
     Serialize,
-    Eq
+    Eq,
+    EnumString,
 )]
 pub enum TextKeys {
     AuthenticateBtn,
@@ -48,4 +49,6 @@ pub enum TextKeys {
     FailedToLoadMacIcon,
     FailedToLoadLinuxIcon,
     AuthFlowCompleted,
+    ParserError,
+    TransportError,
 }

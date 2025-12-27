@@ -1,4 +1,3 @@
-pub mod errors;
 pub mod callback_endpoint;
 pub mod test_helpers;
 pub mod engine;

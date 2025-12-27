@@ -1,4 +1,4 @@
-use crate::domain::errors::ServerError;
+use common::domain::errors::ApplicationError;
 use crate::domain::tokens::Tokens;
 use crate::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
 
@@ -32,11 +32,11 @@ impl TokenStoreDrivenPort for FakeTokenStoreFileAdapter {
         true
     }
 
-    fn load(&self) -> Result<Option<Tokens>, ServerError> {
+    fn load(&self) -> Result<Option<Tokens>, ApplicationError> {
         Ok(self.tokens.clone())
     }
 
-    fn save(&self, tokens: &Tokens) -> Result<(), ServerError> {
+    fn save(&self, tokens: &Tokens) -> Result<(), ApplicationError> {
         _ = tokens;
         Ok(())
     }
@@ -70,11 +70,11 @@ impl TokenStoreDrivenPort for FakeTokenStoreRingAdapter {
         true
     }
 
-    fn load(&self) -> Result<Option<Tokens>, ServerError> {
+    fn load(&self) -> Result<Option<Tokens>, ApplicationError> {
         Ok(self.tokens.clone())
     }
 
-    fn save(&self, tokens: &Tokens) -> Result<(), ServerError> {
+    fn save(&self, tokens: &Tokens) -> Result<(), ApplicationError> {
         _ = tokens;
         Ok(())
     }

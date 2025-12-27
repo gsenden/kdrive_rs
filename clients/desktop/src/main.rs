@@ -1,19 +1,20 @@
-use dioxus::launch;
 use dioxus::prelude::*;
-use dioxus::desktop::{use_window, Config, WindowBuilder};
+use dioxus::desktop::use_window;
 use dioxus::desktop::tao::platform::windows::IconExtWindows;
 use dioxus::desktop::tao::window::Icon;
 use ui::views::{Blog, Home, Login, Navbar};
 use domain::client::Client;
 use adapters::grpc_server_adapter::GrpcServerAdapter;
 use crate::domain::view::View;
-
-// I18n imports
 use common::adapters::i18n_embedded_adapter::I18nEmbeddedFtlAdapter;
-use common::domain::errors::{translate_error, ApplicationError};
+use common::domain::errors::ApplicationError;
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use common::domain::text_keys::TextKeys;
-use common::domain::text_keys::TextKeys::{FailedToLoadLinuxIcon, FailedToLoadWindowsIcon, WindowTitle};
+#[cfg(target_os = "windows")]
+use common::domain::text_keys::TextKeys::FailedToLoadWindowsIcon;
+#[cfg(target_os = "linux")]
+use common::domain::text_keys::TextKeys::FailedToLoadLinuxIcon;
+use common::domain::text_keys::TextKeys::WindowTitle;
 use crate::ui::views::{ConnectingView, ErrorView};
 
 mod adapters;
@@ -101,8 +102,8 @@ fn AppWithClient<I18nPort: I18nDrivenPort + 'static>(client: Client<GrpcServerAd
         match &*view.read() {
             Some(View::Login) => rsx! { Login { i18n } },
             Some(View::Home) => rsx! { Router::<Route> {} },
-            Some(View::Error(e)) => {
-                let msg = translate_error(e, &i18n);
+            Some(View::Error(error)) => {
+                let msg = error.translate(&i18n);
                 rsx! { "Error: {msg}" }
             },
             None => rsx! { "Loading..." },

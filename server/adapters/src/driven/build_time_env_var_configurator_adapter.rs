@@ -1,14 +1,14 @@
 // adapters/src/driven/build_time_env_var_configurator_adapter.rs
 use engine::domain::configuration::Configuration;
-use engine::domain::errors::ServerError;
 use engine::domain::default_values::configurator_defaults::*;
 use engine::ports::driven::configurator_driven_port::ConfiguratorPort;
 use oauth2::{AuthUrl, ClientId, RedirectUrl, TokenUrl};
+use common::domain::errors::ApplicationError;
 
 pub struct BuildTimeEnvVarConfiguratorPort;
 
 impl ConfiguratorPort for BuildTimeEnvVarConfiguratorPort {
-    fn load(&self) -> Result<Configuration, ServerError> {
+    fn load(&self) -> Result<Configuration, ApplicationError> {
         let auth_url = option_env!("AUTH_URL")
             .unwrap_or(DEFAULT_AUTH_URL)
             .to_string();
