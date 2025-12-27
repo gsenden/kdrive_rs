@@ -14,7 +14,6 @@ use adapters::driven::token_store_file_adapter::TokenStoreFileAdapter;
 use adapters::driven::token_store_key_ring_adapter::TokenStoreKeyRingAdapter;
 use engine::domain::tokens::TokenStore;
 use engine::ports::driven::configurator_driven_port::ConfiguratorPort;
-use common::adapters::i18n_embedded_adapter::I18nEmbeddedFtlAdapter;
 use common::domain::errors::ApplicationError;
 use common::kdrive::kdrive_service_server::KdriveServiceServer;
 

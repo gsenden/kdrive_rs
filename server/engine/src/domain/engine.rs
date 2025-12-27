@@ -41,19 +41,29 @@ where
         self.authenticator_driven_port.start_initial_auth_flow().await
     }
 
-    pub async fn continue_initial_auth_flow(&mut self) -> Result<bool, ApplicationError> {
-        let result = self.authenticator_driven_port.continue_initial_auth_flow().await;
-        match result {
-            Ok(result) => {
-                let tokens = self.authenticator_driven_port.get_tokens().await?;
-                self.token_store.save_tokens(&tokens)?;
-                self.event_bus.emit(EngineEvent::AuthFlowCompleted)?;
-                Ok(result)
+    pub async fn continue_initial_auth_flow(&mut self) -> Result<(), ApplicationError> {
+        match self.authenticator_driven_port.continue_initial_auth_flow().await {
+            // Command could be started
+            Ok(()) => {
+                // Errors and return values in the execution of the command will be sent as events
+                match self.authenticator_driven_port.get_tokens().await {
+                    Ok(tokens) => {
+                        self.token_store.save_tokens(&tokens)?;
+                        self.event_bus.emit(EngineEvent::AuthFlowCompleted)?;
+                    }
+                    Err(error) => {
+                        self.event_bus.emit(EngineEvent::AuthFlowFailed {
+                            reason: error.clone(),
+                        })?;
+                    }
+                }
+
+                // Valid command
+                Ok(())
             }
-            Err(error) => {
-                self.event_bus.emit(EngineEvent::AuthFlowFailed {reason: error.clone()})?;
-                Err(error)
-            }
+
+            // Command could not be started
+            Err(error) => Err(error),
         }
     }
 }

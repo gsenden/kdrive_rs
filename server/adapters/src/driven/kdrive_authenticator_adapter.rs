@@ -73,7 +73,7 @@ impl AuthenticatorDrivenPort for KDriveAuthenticator {
         Ok(auth_url.to_string())
     }
 
-    async fn continue_initial_auth_flow(&mut self) -> Result<bool, ApplicationError> {
+    async fn continue_initial_auth_flow(&mut self) -> Result<(), ApplicationError> {
         let pkce_verifier = match self.pkce_verifier.take() {
             Some(v) => v,
             None => return Err(application_error!(FlowNotStarted)),
@@ -114,7 +114,7 @@ impl AuthenticatorDrivenPort for KDriveAuthenticator {
             self.refresh_token = Some(refresh.clone());
         }
 
-        Ok(true)
+        Ok(())
     }
 
     async fn get_tokens(&self) -> Result<Tokens, ApplicationError> {

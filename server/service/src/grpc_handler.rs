@@ -9,7 +9,6 @@ use engine::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 use engine::ports::driven::event_bus_driven_port::EventBusDrivenPort;
 use engine::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
 use engine::ports::driving::token_store_driving_port::TokenStoreDrivingPort;
-use common::ports::i18n_driven_port::I18nDrivenPort;
 use engine::domain::events::EngineEvent;
 use tokio_stream::wrappers::BroadcastStream;
 use futures_util::StreamExt;
@@ -75,18 +74,18 @@ where
             .map_err(Status::from)
     }
 
-    async fn continue_initial_auth_flow(&self,_request: Request<Empty>)
+    async fn continue_initial_auth_flow(&self, _request: Request<Empty>)
         -> Result<Response<Empty>, Status>
     {
-        let mut engine = self.engine.lock().await;
+        let engine = self.engine.clone();
 
-        engine
-            .continue_initial_auth_flow()
-            .await
-            .map(|success| {
-                Response::new(Empty {})
-            })
-            .map_err(Status::from)
+        // Fire-and-forget
+        tokio::spawn(async move {
+            let mut engine = engine.lock().await;
+            let _ = engine.continue_initial_auth_flow().await;
+         });
+
+        Ok(Response::new(Empty {}))
     }
 
     type SubscribeEventsStream = EventStream;

@@ -61,11 +61,11 @@ impl AuthenticatorDrivenPort for FakeAuthenticatorDrivenAdapter {
         Ok(url.to_string())
     }
 
-    async fn continue_initial_auth_flow(&mut self) -> Result<bool, ApplicationError> {
+    async fn continue_initial_auth_flow(&mut self) -> Result<(), ApplicationError> {
         if self.should_fail {
             return Err(application_error!(FlowNotStarted));
         }
-        Ok(true)
+        Ok(())
     }
 
     async fn get_tokens(&self) -> Result<Tokens, ApplicationError> {
