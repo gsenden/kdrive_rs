@@ -32,8 +32,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Step 3: Complete auth flow
     println!("\n[3] Completing auth flow...");
-    let resp = client.continue_initial_auth_flow(Request::new(Empty {})).await?;
-    let success = resp.into_inner().success;
+    let resp = client.continue_initial_auth_flow(Request::new(Empty {})).await;
+    let success = resp.is_ok();
     println!("Auth flow success: {}", success);
 
     // Step 4: Check if now authenticated

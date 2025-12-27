@@ -25,15 +25,13 @@ pub async fn start_server(addr: SocketAddr) -> Result<(), ApplicationError> {
     let authenticator = KDriveAuthenticator::new_from_config(&config);
     let token_store =
         TokenStore::load(Some(TokenStoreKeyRingAdapter), Some(TokenStoreFileAdapter))?;
-    let i18n_adapter = I18nEmbeddedFtlAdapter::load();
 
     let event_bus = EventBusAdapter::new();
 
     let engine = Engine::new(
         authenticator,
         token_store,
-        event_bus.clone(),
-        i18n_adapter,
+        event_bus.clone()
     );
 
     let handler = KdriveServiceHandler::new(

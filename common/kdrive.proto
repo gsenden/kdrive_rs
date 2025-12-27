@@ -5,7 +5,7 @@ package kdrive;
 service KdriveService {
   rpc IsAuthenticated(Empty) returns (AuthStatus);
   rpc StartInitialAuthFlow(Empty) returns (AuthUrlResponse);
-  rpc ContinueInitialAuthFlow(Empty) returns (AuthFlowResult);
+  rpc ContinueInitialAuthFlow(Empty) returns (Empty);
 
   rpc SubscribeEvents(Empty) returns (stream ServerEvent);
 }
@@ -18,15 +18,6 @@ message AuthStatus {
 
 message AuthUrlResponse {
   string auth_url = 1;
-}
-
-message AuthFlowResult {
-  bool success = 1;
-}
-
-message I18nEvent {
-  string key = 1;
-  map<string, string> args = 2;
 }
 
 message AuthFlowCompleted {}
