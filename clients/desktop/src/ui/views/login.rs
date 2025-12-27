@@ -1,10 +1,9 @@
 use common::domain::text_keys::TextKeys::{AuthenticateBtn, AuthenticateWithBrowserMessage, CopyLinkToBrowser, CopyText, KDriveLogoAlt, KDriveProductName};
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use dioxus::prelude::*;
-
+use common::domain::errors::ApplicationError;
 use crate::adapters::grpc_server_adapter::GrpcServerAdapter;
 use crate::domain::client::Client;
-use crate::domain::errors::ClientError;
 use crate::ports::driven::server_driven_port::ServerDrivenPort;
 use crate::ui::views::{ConnectingView, ErrorView};
 use crate::ui::components::TitleBanner;
@@ -23,12 +22,12 @@ pub fn Login<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort) -> Element {
 
 }
 
-pub fn get_auth_result<P>(client: Client<P>) -> Signal<Option<Result<String, ClientError>>>
+pub fn get_auth_result<P>(client: Client<P>) -> Signal<Option<Result<String, ApplicationError>>>
 where
     P: ServerDrivenPort + Clone + PartialEq + 'static,
 {
     let auth_result =
-        use_signal::<Option<Result<String, ClientError>>>(|| None);
+        use_signal::<Option<Result<String, ApplicationError>>>(|| None);
 
     use_effect(move || {
         let client = client.clone();
@@ -45,7 +44,7 @@ where
 
 
 #[component]
-fn LoginView<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort, auth_result: Signal<Option<Result<String, ClientError>>>) -> Element {
+fn LoginView<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort, auth_result: Signal<Option<Result<String, ApplicationError>>>) -> Element {
 
     let content = match auth_result() {
         None => rsx! { ConnectingView { i18n: i18n.clone() } },
@@ -119,13 +118,14 @@ mod tests {
     use common::adapters::i18n_embedded_adapter::I18nEmbeddedFtlAdapter;
     use dioxus::prelude::*;
     use dioxus_ssr::render_element;
+    use common::application_error;
+    use common::domain::errors::ApplicationError;
     use common::domain::text_keys::TextKeys::*;
     use common::ports::i18n_driven_port::I18nDrivenPort;
-    use crate::domain::errors::ClientError;
     use crate::ui::views::login::LoginView;
 
     #[component]
-    fn TestLoginView(initial: Option<Result<String, ClientError>>) -> Element {
+    fn TestLoginView(initial: Option<Result<String, ApplicationError>>) -> Element {
         let i18n = I18nEmbeddedFtlAdapter::load();
 
         let auth_result = use_signal(|| initial);
@@ -144,7 +144,7 @@ mod tests {
 
         let html = render_element(rsx! {
             TestLoginView {
-                initial: None::<Result<String, ClientError>>
+                initial: None::<Result<String, ApplicationError>>
             }
         });
 
@@ -161,7 +161,7 @@ mod tests {
     #[test]
     fn login_view_error() {
         // Given: A localized error created via our macro
-        let error = crate::error!(TokenRequestFailed, Reason => "connection_refused");
+        let error = application_error!(TokenRequestFailed, "connection_refused");
 
         // When: Rendering the view via SSR
         let html = render_element(rsx! {

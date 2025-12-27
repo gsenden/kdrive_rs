@@ -2,9 +2,9 @@ use std::future::Future;
 use common::domain::defaults::{CONNECTION_TIMEOUT_SECONDS, DEFAULT_SERVER_URL};
 use tonic::transport::Channel;
 use std::time::Duration;
-
-use crate::domain::errors::ClientError;
-use crate::error;
+use common::application_error;
+use common::domain::errors::*;
+use common::domain::text_keys::TextKeys::{ConnectionErrorMessage, OAuthReturnedError};
 use crate::kdrive::kdrive_service_client::KdriveServiceClient;
 use crate::kdrive::Empty;
 use crate::ports::driven::server_driven_port::ServerDrivenPort;
@@ -22,13 +22,13 @@ impl PartialEq for GrpcServerAdapter {
     }
 }
 impl GrpcServerAdapter {
-    async fn connect_with_url(url: &'static str) -> Result<Self, ClientError> {
+    async fn connect_with_url(url: &'static str) -> Result<Self, ApplicationError> {
         let channel = Channel::from_static(url)
             .connect_timeout(Duration::from_secs(CONNECTION_TIMEOUT_SECONDS))
             .connect()
             .await
             .map_err(|e| {
-                error!(ConnectionErrorMessage, Reason => e.to_string())
+                application_error!(ConnectionErrorMessage, e.to_string())
             })?;
 
         Ok(Self {
@@ -36,31 +36,31 @@ impl GrpcServerAdapter {
         })
     }
 
-    pub async fn connect() -> Result<Self, ClientError> {
+    pub async fn connect() -> Result<Self, ApplicationError> {
         Self::connect_with_url(DEFAULT_SERVER_URL).await
     }
 }
 
 impl ServerDrivenPort for GrpcServerAdapter {
-    fn is_authenticated(&self) -> impl Future<Output = Result<bool, ClientError>> + Send {
+    fn is_authenticated(&self) -> impl Future<Output = Result<bool, ApplicationError>> + Send {
         let mut client = self.client.clone();
         async move {
             let response = client
                 .is_authenticated(Empty {})
                 .await
-                .map_err(|e| ClientError::ServerError(e.message().to_string()))?;
+                .map_err(|e| application_error!(OAuthReturnedError, e.to_string()))?;
 
             Ok(response.into_inner().is_authenticated)
         }
     }
 
-    fn start_initial_auth_flow(&self) -> impl Future<Output=Result<String, ClientError>> + Send {
+    fn start_initial_auth_flow(&self) -> impl Future<Output=Result<String, ApplicationError>> + Send {
         let mut client = self.client.clone();
         async move {
             let response = client
                 .start_initial_auth_flow(Empty {})
                 .await
-                .map_err(|e| ClientError::ServerError(e.message().to_string()))?;
+                .map_err(|e| application_error!(OAuthReturnedError, e.to_string()))?;
 
             Ok(response.into_inner().auth_url)
         }

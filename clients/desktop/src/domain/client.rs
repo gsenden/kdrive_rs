@@ -1,4 +1,4 @@
-use crate::domain::errors::ClientError;
+use common::domain::errors::ApplicationError;
 use crate::domain::view::View;
 use crate::ports::driven::server_driven_port::ServerDrivenPort;
 
@@ -12,7 +12,7 @@ impl<ServerPort> Client<ServerPort>
 where
     ServerPort: ServerDrivenPort
 {
-    pub(crate) async fn on_login_view_shown(&self) -> Result<String, ClientError> {
+    pub(crate) async fn on_login_view_shown(&self) -> Result<String, ApplicationError> {
        self.server_driven_port.start_initial_auth_flow().await
     }
 }
@@ -35,6 +35,8 @@ where ServerPort: ServerDrivenPort {
 
 #[cfg(test)]
 mod tests {
+    use common::application_error;
+    use common::domain::text_keys::TextKeys::TokenRequestFailed;
     use crate::domain::client::Client;
     use crate::domain::test_helpers::fake_server_adapter::{FakeServerAdapter, TEST_URL_RESPONSE};
     use crate::domain::view::View;
@@ -73,8 +75,8 @@ mod tests {
 
         // We create the expected error using the macro.
         // This tests data structures rather than translated strings.
-        let expected_error = crate::error!(TokenRequestFailed, Reason => "test error");
-
+        let expected_error = application_error!(TokenRequestFailed, "test error");
+   
         server_adapter.set_error(expected_error.clone());
         let client = Client::new(server_adapter);
 

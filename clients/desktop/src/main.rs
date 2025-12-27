@@ -7,10 +7,10 @@ use ui::views::{Blog, Home, Login, Navbar};
 use domain::client::Client;
 use adapters::grpc_server_adapter::GrpcServerAdapter;
 use crate::domain::view::View;
-use crate::domain::errors::{translate_error, ClientError};
 
 // I18n imports
 use common::adapters::i18n_embedded_adapter::I18nEmbeddedFtlAdapter;
+use common::domain::errors::{translate_error, ApplicationError};
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use common::domain::text_keys::TextKeys;
 use common::domain::text_keys::TextKeys::{FailedToLoadLinuxIcon, FailedToLoadWindowsIcon, WindowTitle};
@@ -110,7 +110,7 @@ fn AppWithClient<I18nPort: I18nDrivenPort + 'static>(client: Client<GrpcServerAd
     }
 }
 
-async fn create_client() -> Result<Client<GrpcServerAdapter>, ClientError> {
+async fn create_client() -> Result<Client<GrpcServerAdapter>, ApplicationError> {
     let grpc_adapter = GrpcServerAdapter::connect().await?;
     Ok(Client::new(grpc_adapter))
 }

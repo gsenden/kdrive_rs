@@ -1,4 +1,4 @@
-use crate::domain::errors::ClientError;
+use common::domain::errors::ApplicationError;
 use crate::ports::driven::server_driven_port::ServerDrivenPort;
 
 pub const TEST_URL_RESPONSE: &str = "http://localhost:8080/test-url-response";
@@ -7,7 +7,7 @@ pub const TEST_URL_RESPONSE: &str = "http://localhost:8080/test-url-response";
 #[derive(Clone)]
 pub struct FakeServerAdapter {
     authenticated: bool,
-    error: Option<ClientError>
+    error: Option<ApplicationError>,
 }
 
 impl FakeServerAdapter {
@@ -16,14 +16,14 @@ impl FakeServerAdapter {
         FakeServerAdapter {authenticated, error: None}
     }
 
-    pub fn set_error(&mut self, error: ClientError) {
+    pub fn set_error(&mut self, error: ApplicationError) {
         self.error = Some(error);
     }
 
 }
 
 impl ServerDrivenPort for FakeServerAdapter {
-    async fn is_authenticated(&self) -> Result<bool, ClientError> {
+    async fn is_authenticated(&self) -> Result<bool, ApplicationError> {
         if let Some(error) = &self.error {
             return Err(error.clone());
         } else {
@@ -31,7 +31,7 @@ impl ServerDrivenPort for FakeServerAdapter {
         }
     }
 
-    async fn start_initial_auth_flow(&self) -> Result<String, ClientError> {
+    async fn start_initial_auth_flow(&self) -> Result<String, ApplicationError> {
         if let Some(error) = &self.error {
             Err(error.clone())
         } else {

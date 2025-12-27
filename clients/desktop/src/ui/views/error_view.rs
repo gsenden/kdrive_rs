@@ -1,11 +1,11 @@
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use dioxus::prelude::*;
+use common::domain::errors::{translate_error, ApplicationError};
 use common::domain::text_keys::TextKeys::ConnectionError;
-use crate::domain::errors::{translate_error, ClientError};
 use crate::ui::components::TitleBanner;
 
 #[component]
-pub fn ErrorView<I18nPort: I18nDrivenPort + 'static>(error: ClientError, i18n: I18nPort) -> Element {
+pub fn ErrorView<I18nPort: I18nDrivenPort + 'static>(error: ApplicationError, i18n: I18nPort) -> Element {
     rsx! {
         div {
             class: "min-h-screen flex flex-col items-center bg-[#0f1116] p-8 text-white",
