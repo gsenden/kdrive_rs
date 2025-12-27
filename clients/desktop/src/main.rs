@@ -48,7 +48,7 @@ fn App() -> Element {
     let window = use_window();
 
     let i18n = use_hook(|| {
-        I18nEmbeddedFtlAdapter::load().expect("Failed to load localizations")
+        I18nEmbeddedFtlAdapter::load()
     });
 
     let i18n_for_window = i18n.clone();

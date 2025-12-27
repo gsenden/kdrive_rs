@@ -1,7 +1,7 @@
 use i18n_embed::I18nEmbedError;
 use thiserror::Error;
 use serde::{Deserialize, Serialize};
-use crate::domain::text_keys::TextKeys;
+use i18n_loader::TextKeys;
 
 #[derive(Debug, Error)]
 pub enum CommonError {

@@ -15,3 +15,7 @@ i18n-embed-fl = "0.10.0"
 thiserror = "2.0.17"
 fluent-bundle = "0.16.0"
 serde = { version = "1.0.228", features = ["derive"] }
+i18n_loader = { path = "i18n_loader" }
+
+[build-dependencies]
+i18n_loader = { path = "i18n_loader" }

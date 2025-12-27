@@ -1,5 +1,5 @@
-use crate::domain::language::Language;
 use const_format::concatcp;
+use i18n_loader::Language;
 
 pub const DEFAULT_SERVER_ADDRESS: &str = "127.0.0.1:50051";
 pub const DEFAULT_SERVER_URL: &str = concatcp!("http://",DEFAULT_SERVER_ADDRESS);

@@ -126,7 +126,7 @@ mod tests {
 
     #[component]
     fn TestLoginView(initial: Option<Result<String, ClientError>>) -> Element {
-        let i18n = I18nEmbeddedFtlAdapter::load().unwrap();
+        let i18n = I18nEmbeddedFtlAdapter::load();
 
         let auth_result = use_signal(|| initial);
 
@@ -140,7 +140,7 @@ mod tests {
 
     #[test]
     fn login_view_shows_authenticate_with_browser_message() {
-        let i18n = I18nEmbeddedFtlAdapter::load().unwrap();
+        let i18n = I18nEmbeddedFtlAdapter::load();
 
         let html = render_element(rsx! {
             TestLoginView {

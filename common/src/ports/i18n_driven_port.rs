@@ -1,5 +1,4 @@
-use crate::domain::language::Language;
-use crate::domain::text_keys::TextKeys;
+use i18n_loader::{Language, TextKeys};
 
 pub trait I18nDrivenPort: Clone + Send + Sync + PartialEq {
     fn t(&self, key: TextKeys) -> String;
