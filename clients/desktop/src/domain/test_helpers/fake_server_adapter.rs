@@ -39,4 +39,8 @@ impl ServerDrivenPort for FakeServerAdapter {
 
         }
     }
+
+    async fn continue_initial_auth_flow(&self) -> Result<(), ApplicationError> {
+        Ok(())
+    }
 }

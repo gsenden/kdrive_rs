@@ -6,18 +6,21 @@ edition = "2024"
 [dependencies]
 engine = { path = "../engine" }
 common = { path = "../../common" }
-dotenvy = "0.15.7"
 oauth2 = "5.0.0"
 tokio = "1.48.0"
-axum = "0.8.6"
-tower = "0.5.2"
-axum-server = "0.7.2"
+axum = "0.8.8"
+
+axum-server = "0.8.0"
 async-trait = "0.1.89"
-reqwest = "0.12.24"
+reqwest = "0.12.26"
 serde = { version = "1.0.228", features = ["derive"] }
 dirs = "6.0.0"
-serde_json = "1.0.145"
-keyring = "3.6.3"
+serde_json = "1.0.148"
+keyring = { version = "3.6.3", features = [
+    "apple-native",       # macOS Keychain
+    "windows-native",     # Windows Credential Manager
+    "sync-secret-service" # Linux (GNOME Keyring, KWallet, etc.)
+] }
 
 [lib]
 doctest = false

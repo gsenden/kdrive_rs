@@ -77,7 +77,7 @@ where
     async fn continue_initial_auth_flow(&self, _request: Request<Empty>)
         -> Result<Response<Empty>, Status>
     {
-        let engine = self.engine.clone();
+       let engine = self.engine.clone();
 
         // Fire-and-forget
         tokio::spawn(async move {

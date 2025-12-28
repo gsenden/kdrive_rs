@@ -22,3 +22,4 @@ Cargo.lock
 **/txt_export/
 
 server/start_test_server.sh
+server/start_test_server_ps.ps1

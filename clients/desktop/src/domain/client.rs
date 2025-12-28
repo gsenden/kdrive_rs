@@ -13,7 +13,14 @@ where
     ServerPort: ServerDrivenPort
 {
     pub(crate) async fn on_login_view_shown(&self) -> Result<String, ApplicationError> {
-       self.server_driven_port.start_initial_auth_flow().await
+        let url = self
+            .server_driven_port
+            .start_initial_auth_flow()
+            .await?;
+
+        self.server_driven_port.continue_initial_auth_flow().await?;
+
+        Ok(url)
     }
 }
 

@@ -4,7 +4,7 @@ use tonic::transport::Channel;
 use std::time::Duration;
 use common::application_error;
 use common::domain::errors::*;
-use common::domain::text_keys::TextKeys::{ConnectionErrorMessage, OAuthReturnedError};
+use common::domain::text_keys::TextKeys::ConnectionErrorMessage;
 use crate::kdrive::kdrive_service_client::KdriveServiceClient;
 use crate::kdrive::Empty;
 use crate::ports::driven::server_driven_port::ServerDrivenPort;
@@ -48,7 +48,7 @@ impl ServerDrivenPort for GrpcServerAdapter {
             let response = client
                 .is_authenticated(Empty {})
                 .await
-                .map_err(|e| application_error!(OAuthReturnedError, e.to_string()))?;
+                .map_err(|status| ApplicationError::from(status))?;
 
             Ok(response.into_inner().is_authenticated)
         }
@@ -60,9 +60,21 @@ impl ServerDrivenPort for GrpcServerAdapter {
             let response = client
                 .start_initial_auth_flow(Empty {})
                 .await
-                .map_err(|e| application_error!(OAuthReturnedError, e.to_string()))?;
+                .map_err(|status| ApplicationError::from(status) )?;
 
             Ok(response.into_inner().auth_url)
+        }
+    }
+
+    fn continue_initial_auth_flow(&self) -> impl Future<Output=Result<(), ApplicationError>> + Send {
+        let mut client = self.client.clone();
+        async move {
+            client
+                .continue_initial_auth_flow(Empty {})
+                .await
+                .map_err(|status| ApplicationError::from(status))?;
+
+            Ok(())
         }
     }
 }
