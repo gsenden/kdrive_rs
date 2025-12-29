@@ -18,17 +18,13 @@ use common::domain::text_keys::TextKeys::WindowTitle;
 use crate::ui::views::{ConnectingView, ErrorView};
 use crate::ports::driving::ui_driving_port::UIDrivingPort;
 use std::sync::Arc;
-use crate::adapters::dioxus_ui_adapter::DioxusUIAdapter;
+use crate::adapters::ui_adapter::UIAdapter;
 
 
 mod adapters;
 mod domain;
 mod ports;
 mod ui;
-
-pub mod kdrive {
-    tonic::include_proto!("kdrive");
-}
 
 #[derive(Debug, Clone, Routable, PartialEq)]
 #[rustfmt::skip]
@@ -93,7 +89,7 @@ fn App() -> Element {
 
 #[component]
 fn AppWithClient<I18nPort: I18nDrivenPort + 'static>(client: Client<GrpcServerAdapter>, i18n: I18nPort) -> Element {
-    let ui_adapter = DioxusUIAdapter::new(client.clone());
+    let ui_adapter = UIAdapter::new(client.clone());
     use_context_provider(|| Arc::new(ui_adapter) as Arc<dyn UIDrivingPort>);
 
     let view = use_resource(move || {

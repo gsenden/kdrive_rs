@@ -4,14 +4,14 @@ use crate::ports::driving::ui_driving_port::UIDrivingPort;
 use crate::domain::client::Client;
 use crate::ports::driven::server_driven_port::ServerDrivenPort;
 
-pub struct DioxusUIAdapter<ServerPort>
+pub struct UIAdapter<ServerPort>
 where
     ServerPort: ServerDrivenPort,
 {
     client: Client<ServerPort>,
 }
 
-impl<ServerPort> DioxusUIAdapter<ServerPort>
+impl<ServerPort> UIAdapter<ServerPort>
 where
     ServerPort: ServerDrivenPort,
 {
@@ -21,7 +21,7 @@ where
 }
 
 #[async_trait]
-impl<ServerPort> UIDrivingPort for DioxusUIAdapter<ServerPort>
+impl<ServerPort> UIDrivingPort for UIAdapter<ServerPort>
 where
     ServerPort: ServerDrivenPort + Send + Sync,
 {

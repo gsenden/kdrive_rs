@@ -10,14 +10,14 @@ edition = "2024"
 common = { path = "../../common" }
 dioxus = { version = "0.7.1", features = ["router"] }
 tonic = "0.14.2"
-prost = "0.14.1"
-tonic-prost = "0.14.2"
-thiserror = "2.0.17"
 tokio = "1.48.0"
-serde = { version = "1.0.228", features = ["derive"] }
+
 webbrowser = "1.0.6"
 arboard = "3.6.1"
 async-trait = "0.1.89"
+tokio-stream = "0.1.17"
+futures-core = "0.3.31"
+futures-util = "0.3.31"
 
 [dev-dependencies]
 dioxus-ssr = "0.7.2"

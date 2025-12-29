@@ -1,4 +1,8 @@
+use futures_util::stream;
+use std::future;
 use common::domain::errors::ApplicationError;
+use common::kdrive::ServerEvent;
+use crate::domain::events::ServerEventStream;
 use crate::ports::driven::server_driven_port::ServerDrivenPort;
 
 pub const TEST_URL_RESPONSE: &str = "http://localhost:8080/test-url-response";
@@ -42,5 +46,13 @@ impl ServerDrivenPort for FakeServerAdapter {
 
     async fn continue_initial_auth_flow(&self) -> Result<(), ApplicationError> {
         Ok(())
+    }
+
+    fn subscribe_events(&self) -> impl Future<Output=Result<ServerEventStream, ApplicationError>> + Send {
+        future::ready(Ok(
+            Box::pin(
+                stream::empty::<Result<ServerEvent, ApplicationError>>(),
+            ) as ServerEventStream
+        ))
     }
 }

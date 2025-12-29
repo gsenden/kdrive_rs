@@ -17,7 +17,6 @@ use common::domain::errors::ApplicationError;
 use common::kdrive::Empty;
 use common::kdrive::kdrive_service_client::KdriveServiceClient;
 use common::kdrive::kdrive_service_server::KdriveServiceServer;
-use engine::domain::test_helpers::fake_i18n::FakeI18n;
 
 async fn start_test_server() -> Result<(SocketAddr, tokio::task::JoinHandle<()>), ApplicationError> {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();

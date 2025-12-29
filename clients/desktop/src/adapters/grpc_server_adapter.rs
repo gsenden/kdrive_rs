@@ -1,14 +1,21 @@
 use std::future::Future;
-use common::domain::defaults::{CONNECTION_TIMEOUT_SECONDS, DEFAULT_SERVER_URL};
+use futures_util::StreamExt;
 use tonic::transport::Channel;
 use std::time::Duration;
-use common::application_error;
-use common::domain::errors::*;
-use common::domain::text_keys::TextKeys::ConnectionErrorMessage;
-use crate::kdrive::kdrive_service_client::KdriveServiceClient;
-use crate::kdrive::Empty;
-use crate::ports::driven::server_driven_port::ServerDrivenPort;
+use tonic::Request;
+use common::{
+    domain::text_keys::TextKeys::ConnectionErrorMessage,
+    domain::errors::*,
+    application_error,
+    domain::defaults::{CONNECTION_TIMEOUT_SECONDS, DEFAULT_SERVER_URL}
 
+};
+use common::kdrive::Empty;
+use common::kdrive::kdrive_service_client::KdriveServiceClient;
+use crate::{
+    domain::events::ServerEventStream,
+    ports::driven::server_driven_port::ServerDrivenPort
+};
 
 
 #[derive(Clone)]
@@ -77,12 +84,35 @@ impl ServerDrivenPort for GrpcServerAdapter {
             Ok(())
         }
     }
+
+    fn subscribe_events(&self)
+        -> impl Future<Output=Result<ServerEventStream, ApplicationError>> + Send
+    {
+        let mut client = self.client.clone();
+
+        async move {
+            let response = client
+                .subscribe_events(Request::new(Empty {}))
+                .await
+                .map_err(ApplicationError::from)?;
+
+            let stream = response
+                .into_inner()
+                .map(|item| item.map_err(ApplicationError::from));
+
+            Ok(Box::pin(stream) as ServerEventStream)
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use tokio::time::Duration;
+    use tokio_stream::StreamExt;
+    use crate::adapters::test_helpers::fake_kdrive_service::start_test_server;
+    use common::kdrive::server_event::Event as ServerEventKind;
+
     #[tokio::test]
     async fn connect_fails_within_reasonable_time_when_target_is_unreachable() {
         let unreachable_url = "http://192.0.2.1:50051";
@@ -98,5 +128,28 @@ mod tests {
             "connect took too long: {:?}",
             elapsed
         );
+    }
+
+    #[tokio::test]
+    async fn client_receives_auth_flow_completed_event_from_server() {
+        // Given a running gRPC server emitting AuthFlowCompleted
+        let (server_url, _handle) = start_test_server().await;
+
+        // And a gRPC server adapter connected to it
+        let adapter =
+            GrpcServerAdapter::connect_with_url(Box::leak(server_url.into_boxed_str()))
+                .await
+                .unwrap();
+
+        // When the client subscribes to server events
+        let mut events = adapter.subscribe_events().await.unwrap();
+
+        // Then the first event must be AuthFlowCompleted
+        let event = events.next().await.unwrap().unwrap();
+
+        assert!(matches!(
+            event.event,
+            Some(ServerEventKind::AuthFlowCompleted(_))
+        ));
     }
 }

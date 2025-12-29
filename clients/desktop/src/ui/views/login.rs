@@ -3,8 +3,6 @@ use common::domain::text_keys::TextKeys::{AuthenticateBtn, CopyLinkToBrowser, Co
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use dioxus::prelude::*;
 use common::domain::errors::ApplicationError;
-use crate::domain::client::Client;
-use crate::ports::driven::server_driven_port::ServerDrivenPort;
 use crate::ports::driving::ui_driving_port::UIDrivingPort;
 use crate::ui::views::{ConnectingView, ErrorView};
 use crate::ui::components::TitleBanner;
