@@ -1,7 +1,15 @@
 use dioxus::prelude::*;
 use dioxus::desktop::use_window;
-use dioxus::desktop::tao::platform::windows::IconExtWindows;
 use dioxus::desktop::tao::window::Icon;
+
+#[cfg(target_os = "windows")]
+use dioxus::desktop::tao::platform::windows::IconExtWindows;
+#[cfg(target_os = "windows")]
+use dioxus::desktop::tao::window::BadIcon;
+#[cfg(target_os = "windows")]
+use std::fs::File;
+#[cfg(target_os = "windows")]
+use std::io::Read;
 use ui::views::{Blog, Home, Login, Navbar};
 use domain::client::Client;
 use adapters::grpc_server_adapter::GrpcServerAdapter;
@@ -125,7 +133,13 @@ fn load_icon<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort) -> Icon {
 
     #[cfg(target_os = "linux")]
     {
-        Icon::from_path("assets/kdrive_icon.png", None).expect(i18n.t(FailedToLoadLinuxIcon).as_str())
+        let icon_bytes = include_bytes!("../assets/kdrive_icon.png");
+        let image = image::load_from_memory(icon_bytes)
+            .expect(i18n.t(FailedToLoadLinuxIcon).as_str())
+            .into_rgba8();
+        let (width, height) = image.dimensions();
+        Icon::from_rgba(image.into_raw(), width, height)
+            .expect(i18n.t(FailedToLoadLinuxIcon).as_str())
     }
 
     #[cfg(target_os = "macos")]

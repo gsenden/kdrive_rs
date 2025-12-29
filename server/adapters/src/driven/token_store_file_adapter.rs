@@ -3,10 +3,11 @@ use engine::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
 use serde::{Deserialize, Serialize};
 use dirs::config_dir;
 use std::fs;
+use std::io::Write;
 use std::path::PathBuf;
 use common::application_error;
 use common::domain::errors::ApplicationError;
-use common::domain::text_keys::TextKeys::{CouldNotCreateFolder, CouldNotParseJson, CouldNotReadTokensFromFile, CouldNotSaveTokenFile, CouldNotSerializeTokens, NoConfigFolderFound};
+use common::domain::text_keys::TextKeys::{CouldNotCreateFolder, CouldNotOpenTokenFile, CouldNotParseJson, CouldNotReadTokensFromFile, CouldNotSaveTokenFile, CouldNotSerializeTokens, NoConfigFolderFound};
 use engine::domain::tokens::Tokens;
 
 #[derive(Debug, Serialize, Deserialize)]
