@@ -31,7 +31,12 @@ where
         Self { server, ui, timeout }
     }
 
-    pub async fn start(&self) {
+    pub async fn run(&self) {
+        self.initialize().await;
+        self.subscribe_and_listen_for_events().await;
+    }
+
+    async fn initialize(&self) {
         self.ui.show_loading_view();
 
         let result = tokio::time::timeout(
@@ -45,8 +50,9 @@ where
             Ok(Err(error)) => self.ui.show_error_view(error),
             Err(_connection_timeout) => self.ui.show_error_view(application_error!(ConnectionErrorMessage)),
         }
+    }
 
-        // Event loop
+    async fn subscribe_and_listen_for_events(&self) {
         if let Ok(mut events) = self.server.subscribe_events().await {
             while let Some(Ok(server_event)) = events.next().await {
                 if let Some(event) = server_event.event {
@@ -88,7 +94,7 @@ mod tests {
         let core = UICore::new(server, ui.clone());
 
         // When
-        core.start().await;
+        core.run().await;
 
         // Then
         assert!(ui.error_view_was_shown());
@@ -102,7 +108,7 @@ mod tests {
         let core = UICore::new(server, ui.clone());
 
         // When
-        core.start().await;
+        core.run().await;
 
         // Then
         assert!(ui.login_view_was_shown());
@@ -116,7 +122,7 @@ mod tests {
         let core = UICore::new(server, ui.clone());
 
         // When
-        core.start().await;
+        core.run().await;
 
         // Then
         assert!(ui.home_view_was_shown());
@@ -130,7 +136,7 @@ mod tests {
         let core = UICore::new(server, ui.clone());
 
         // When
-        core.start().await;
+        core.run().await;
 
         // Then
         assert!(ui.loading_view_was_shown());
@@ -144,7 +150,7 @@ mod tests {
         let core = UICore::with_timeout(server, ui.clone(), Duration::from_secs(CONNECTION_TIMEOUT_SECONDS));
 
         // When
-        core.start().await;
+        core.run().await;
 
         // Then
         assert!(ui.error_view_was_shown());
@@ -173,7 +179,7 @@ mod tests {
         let core = UICore::new(server, ui.clone());
 
         // When
-        core.start().await;
+        core.run().await;
 
         // Then
         assert!(ui.home_view_was_shown());
