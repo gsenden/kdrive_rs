@@ -37,6 +37,15 @@ impl FakeServerAdapter {
         }
     }
 
+    pub fn with_server_event(event: ServerEvent) -> Self {
+        FakeServerAdapter {
+            authenticated: false,
+            error: None,
+            delay: None,
+            event: Some(event),
+        }
+    }
+
     pub fn set_error(&mut self, error: ApplicationError) {
         self.error = Some(error);
     }

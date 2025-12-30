@@ -1,21 +1,10 @@
 use dioxus::prelude::*;
 use dioxus::desktop::use_window;
 use dioxus::desktop::tao::window::Icon;
-
 #[cfg(target_os = "windows")]
 use dioxus::desktop::tao::platform::windows::IconExtWindows;
-#[cfg(target_os = "windows")]
-use dioxus::desktop::tao::window::BadIcon;
-#[cfg(target_os = "windows")]
-use std::fs::File;
-#[cfg(target_os = "windows")]
-use std::io::Read;
-use ui::views::{Blog, Home, Login, Navbar};
-use domain::client::Client;
 use adapters::grpc_server_adapter::GrpcServerAdapter;
-use crate::domain::view::View;
 use common::adapters::i18n_embedded_adapter::I18nEmbeddedFtlAdapter;
-use common::domain::errors::ApplicationError;
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use common::domain::text_keys::TextKeys;
 #[cfg(target_os = "windows")]
@@ -23,26 +12,14 @@ use common::domain::text_keys::TextKeys::FailedToLoadWindowsIcon;
 #[cfg(target_os = "linux")]
 use common::domain::text_keys::TextKeys::FailedToLoadLinuxIcon;
 use common::domain::text_keys::TextKeys::WindowTitle;
-use crate::ui::views::{ConnectingView, ErrorView};
-use crate::ports::driving::ui_driving_port::UIDrivingPort;
-use std::sync::Arc;
-use crate::adapters::ui_adapter::UIAdapter;
+use crate::adapters::dioxus_adapter::DioxusAdapter;
+use crate::domain::ui_core::UICore;
 
 
 mod adapters;
 mod domain;
 mod ports;
 mod ui;
-
-#[derive(Debug, Clone, Routable, PartialEq)]
-#[rustfmt::skip]
-enum Route {
-    #[layout(Navbar)]
-        #[route("/")]
-        Home {},
-        #[route("/blog/:id")]
-        Blog { id: i32 },
-}
 
 const MAIN_CSS: Asset = asset!("/assets/styling/main.css");
 const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
@@ -51,14 +28,12 @@ const SUISSE_FONT: Asset = asset!("/assets/suisse-intl-400-normal.woff2");
 fn main() {
     dioxus::launch(App);
 }
-
 #[component]
 fn App() -> Element {
     let window = use_window();
+    let element_signal = use_signal(|| rsx! { "Loading..." });
 
-    let i18n = use_hook(|| {
-        I18nEmbeddedFtlAdapter::load()
-    });
+    let i18n = use_hook(|| I18nEmbeddedFtlAdapter::load());
 
     let i18n_for_window = i18n.clone();
     use_effect(move || {
@@ -66,7 +41,20 @@ fn App() -> Element {
         window.set_window_icon(Some(load_icon(i18n_for_window.clone())));
     });
 
-    let client_resource = use_resource(|| create_client());
+    let dioxus_adapter =
+        use_hook(|| DioxusAdapter::new(element_signal, i18n.clone()));
+
+    // Start UICore
+    use_future(move || {
+        let adapter_for_core = dioxus_adapter.clone();
+        async move {
+            if let Ok(grpc_adapter) = GrpcServerAdapter::connect().await {
+                let mut core =
+                    UICore::new(grpc_adapter, adapter_for_core);
+                core.run().await;
+            }
+        }
+    });
 
     let font_css = use_memo(|| {
         format!(":root {{ --suisse-font-url: url({}); }}", SUISSE_FONT)
@@ -77,53 +65,13 @@ fn App() -> Element {
             r#type: "text/css",
             {font_css}
         }
-
         document::Link { rel: "stylesheet", href: MAIN_CSS }
         document::Link { rel: "stylesheet", href: TAILWIND_CSS }
 
-        match &*client_resource.read() {
-            None => rsx! {
-                ConnectingView { i18n: i18n.clone() }
-            },
-            Some(Ok(client)) => rsx! {
-                AppWithClient { client: client.clone(), i18n: i18n.clone() }
-            },
-            Some(Err(e)) => rsx! {
-                ErrorView { error: e.clone(), i18n: i18n.clone() }
-            },
-        }
+        {element_signal()}
     }
 }
 
-#[component]
-fn AppWithClient<I18nPort: I18nDrivenPort + 'static>(client: Client<GrpcServerAdapter>, i18n: I18nPort) -> Element {
-    let ui_adapter = UIAdapter::new(client.clone());
-    use_context_provider(|| Arc::new(ui_adapter) as Arc<dyn UIDrivingPort>);
-
-    let view = use_resource(move || {
-        let client = client.clone();
-        async move {
-            client.get_root_view().await
-        }
-    });
-
-    rsx! {
-        match &*view.read() {
-            Some(View::Login) => rsx! { Login { i18n } },
-            Some(View::Home) => rsx! { Router::<Route> {} },
-            Some(View::Error(error)) => {
-                let msg = error.translate(&i18n);
-                rsx! { "Error: {msg}" }
-            },
-            None => rsx! { "Loading..." },
-        }
-    }
-}
-
-async fn create_client() -> Result<Client<GrpcServerAdapter>, ApplicationError> {
-    let grpc_adapter = GrpcServerAdapter::connect().await?;
-    Ok(Client::new(grpc_adapter))
-}
 
 fn load_icon<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort) -> Icon {
     #[cfg(target_os = "windows")]

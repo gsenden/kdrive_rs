@@ -1,7 +1,6 @@
 use std::time::Duration;
 use common::application_error;
 use common::domain::defaults::CONNECTION_TIMEOUT_SECONDS;
-use common::domain::errors::ApplicationError;
 use common::domain::text_keys::TextKeys::ConnectionErrorMessage;
 use crate::ports::driven::server_driven_port::ServerDrivenPort;
 use crate::ports::driven::ui_driven_port::UIDrivenPort;
@@ -31,12 +30,38 @@ where
         Self { server, ui, timeout }
     }
 
-    pub async fn run(&self) {
-        self.initialize().await;
-        self.subscribe_and_listen_for_events().await;
+    pub async fn run(&mut self) {
+        // Subscribe to events
+        let mut events = match self.server.subscribe_events().await {
+            Ok(events) => events,
+            Err(error) => {
+                self.ui.show_error_view(error);
+                return;
+            }
+        };
+
+        self.start_up_view_logic().await;
+
+        // Listen to events
+        while let Some(Ok(server_event)) = events.next().await {
+            if let Some(event) = server_event.event {
+                self.handle_events(event);
+            }
+        }
     }
 
-    async fn initialize(&self) {
+    fn handle_events(&mut self, event: Event) {
+        match event {
+            Event::AuthFlowCompleted(_) => {
+                self.ui.show_home_view();
+            }
+            Event::Error(err) => {
+                self.ui.show_error_view(err.into());
+            }
+        }
+    }
+
+    async fn start_up_view_logic(&mut self) {
         self.ui.show_loading_view();
 
         let result = tokio::time::timeout(
@@ -45,32 +70,29 @@ where
         ).await;
 
         match result {
-            Ok(Ok(false)) => self.ui.show_login_view(),
+            Ok(Ok(false)) => self.auth_flow().await,
             Ok(Ok(true)) => self.ui.show_home_view(),
             Ok(Err(error)) => self.ui.show_error_view(error),
-            Err(_connection_timeout) => self.ui.show_error_view(application_error!(ConnectionErrorMessage)),
+            Err(_connection_timeout) =>
+                self.ui.show_error_view(application_error!(ConnectionErrorMessage)),
         }
     }
 
-    async fn subscribe_and_listen_for_events(&self) {
-        if let Ok(mut events) = self.server.subscribe_events().await {
-            while let Some(Ok(server_event)) = events.next().await {
-                if let Some(event) = server_event.event {
-                    match event {
-                        Event::AuthFlowCompleted(_) => self.ui.show_home_view(),
-                        Event::Error(err) => self.ui.show_error_view(err.into()),
-                    }
-                }
+    async fn auth_flow(&mut self) {
+        match self.server.start_initial_auth_flow().await {
+            Ok(url) => {
+                self.ui.show_login_view(url);
+
+                let server = self.server.clone();
+                tokio::spawn(async move {
+                    let _ = server.continue_initial_auth_flow().await;
+                });
+            }
+            Err(error) => {
+                self.ui.show_error_view(error);
             }
         }
     }
-
-    pub async fn on_login_view_shown(&self) -> Result<String, ApplicationError> {
-        let url = self.server.start_initial_auth_flow().await?;
-        self.server.continue_initial_auth_flow().await?;
-        Ok(url)
-    }
-
 }
 
 #[cfg(test)]
@@ -91,7 +113,7 @@ mod tests {
         let mut server = FakeServerAdapter::new(false);
         server.set_error(application_error!(ConnectionErrorMessage));
         let ui = FakeUIAdapter::new();
-        let core = UICore::new(server, ui.clone());
+        let mut core = UICore::new(server, ui.clone());
 
         // When
         core.run().await;
@@ -105,7 +127,7 @@ mod tests {
         // Given
         let server = FakeServerAdapter::new(false);
         let ui = FakeUIAdapter::new();
-        let core = UICore::new(server, ui.clone());
+        let mut core = UICore::new(server, ui.clone());
 
         // When
         core.run().await;
@@ -119,7 +141,7 @@ mod tests {
         // Given
         let server = FakeServerAdapter::new(true);
         let ui = FakeUIAdapter::new();
-        let core = UICore::new(server, ui.clone());
+        let mut core = UICore::new(server, ui.clone());
 
         // When
         core.run().await;
@@ -133,7 +155,7 @@ mod tests {
         // Given
         let server = FakeServerAdapter::new(false);
         let ui = FakeUIAdapter::new();
-        let core = UICore::new(server, ui.clone());
+        let mut core = UICore::new(server, ui.clone());
 
         // When
         core.run().await;
@@ -147,7 +169,7 @@ mod tests {
         // Given
         let server = FakeServerAdapter::slow(Duration::from_secs(CONNECTION_TIMEOUT_SECONDS + 1));
         let ui = FakeUIAdapter::new();
-        let core = UICore::with_timeout(server, ui.clone(), Duration::from_secs(CONNECTION_TIMEOUT_SECONDS));
+        let mut core = UICore::with_timeout(server, ui.clone(), Duration::from_secs(CONNECTION_TIMEOUT_SECONDS));
 
         // When
         core.run().await;
@@ -157,17 +179,17 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn starts_auth_flow_when_login_view_shown() {
-        // Given
+    async fn shows_login_url_when_auth_flow_starts() {
         let server = FakeServerAdapter::new(false);
         let ui = FakeUIAdapter::new();
-        let core = UICore::new(server, ui);
 
-        // When
-        let url = core.on_login_view_shown().await.unwrap();
+        let mut core = UICore::new(server, ui.clone());
+        core.run().await;
 
-        // Then
-        assert_eq!(url, TEST_URL_RESPONSE);
+        assert_eq!(
+            ui.login_url_shown(),
+            Some(TEST_URL_RESPONSE.to_string())
+        );
     }
 
     #[tokio::test]
@@ -176,12 +198,27 @@ mod tests {
         let server = FakeServerAdapter::with_event(Event::AuthFlowCompleted(AuthFlowCompleted {}));
 
         let ui = FakeUIAdapter::new();
-        let core = UICore::new(server, ui.clone());
+        let mut core = UICore::new(server, ui.clone());
 
         // When
         core.run().await;
 
         // Then
         assert!(ui.home_view_was_shown());
+    }
+
+    #[tokio::test]
+    async fn shows_error_view_when_auth_flow_failed_event_received() {
+        let error = application_error!(ConnectionErrorMessage);
+
+        let server_event: common::kdrive::ServerEvent = error.into();
+
+        let server = FakeServerAdapter::with_server_event(server_event);
+        let ui = FakeUIAdapter::new();
+
+        let mut core = UICore::new(server, ui.clone());
+        core.run().await;
+
+        assert!(ui.error_view_was_shown());
     }
 }

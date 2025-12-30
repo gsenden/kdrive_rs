@@ -51,4 +51,5 @@ pub enum TextKeys {
     AuthFlowCompleted,
     ParserError,
     TransportError,
+    LoadingMessage,
 }

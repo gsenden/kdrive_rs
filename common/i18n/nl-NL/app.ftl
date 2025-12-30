@@ -34,3 +34,4 @@ FailedToLoadLinuxIcon = Het is mislukt om het Linux icoon te laten
 AuthFlowCompleted = KDrive Rust is nu geauthenticeerd
 ParserError = Fout bij het parsen: { $reason }
 TransportError = Transport fout: { $reason }
+LoadingMessage = Laden

@@ -1,58 +1,10 @@
-use std::sync::Arc;
 use common::domain::text_keys::TextKeys::{AuthenticateBtn, CopyLinkToBrowser, CopyText};
 use common::ports::i18n_driven_port::I18nDrivenPort;
 use dioxus::prelude::*;
-use common::domain::errors::ApplicationError;
-use crate::ports::driving::ui_driving_port::UIDrivingPort;
-use crate::ui::views::{ConnectingView, ErrorView};
 use crate::ui::components::TitleBanner;
 
 #[component]
-pub fn Login<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort) -> Element {
-    let ui_port = use_context::<Arc<dyn UIDrivingPort>>();
-    let auth_result = get_auth_result(ui_port);
-
-    rsx! {
-        LoginView {
-            i18n: i18n,
-            auth_result: auth_result
-        }
-    }
-
-}
-
-pub fn get_auth_result(ui_port: Arc<dyn UIDrivingPort>)
-    -> Signal<Option<Result<String, ApplicationError>>> 
-{
-    let auth_result = use_signal(|| None);
-
-    use_effect(move || {
-        let ui = ui_port.clone();
-        let mut auth_result = auth_result.clone();
-
-        spawn(async move {
-            let result = ui.on_login_view_shown().await;
-            auth_result.set(Some(result));
-        });
-    });
-
-    auth_result
-}
-
-#[component]
-fn LoginView<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort, auth_result: Signal<Option<Result<String, ApplicationError>>>) -> Element {
-
-    let content = match auth_result() {
-        None => rsx! { ConnectingView { i18n: i18n.clone() } },
-        Some(Ok(url)) => login_view_content(&i18n, url.clone()),
-        Some(Err(err)) => rsx! { ErrorView {error: err.clone(), i18n: i18n.clone()} },
-    };
-
-    rsx! { {content} }
-}
-// const KDRIVE_LOGO: Asset = asset!("/assets/kdrive.svg");
-
-fn login_view_content<I18nPort: I18nDrivenPort + 'static>(i18n: &I18nPort, url: String) -> Element {
+pub fn Login<I18nPort: I18nDrivenPort + 'static>(i18n: I18nPort, url: String) -> Element {
     let url_for_browser = url.clone();
     let url_for_clipboard = url.clone();
     let mut clipboard_handle = use_signal(|| arboard::Clipboard::new().ok());
@@ -60,12 +12,12 @@ fn login_view_content<I18nPort: I18nDrivenPort + 'static>(i18n: &I18nPort, url: 
     rsx!(
         div {
             class: "min-h-screen flex flex-col items-center bg-[#0f1116] p-8 text-white",
-            
+
             div {
                 class: "pt-[15vh] flex flex-col items-center gap-y-10 w-full max-w-xl",
-            
+
                 TitleBanner { i18n: i18n.clone() },
-            
+
                 button {
                     class: "ml-10 mt-1 px-8 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg rounded-xl
                             transition-all duration-200 transform active:scale-95 shadow-lg shadow-blue-900/20 cursor-pointer",
@@ -107,65 +59,4 @@ fn login_view_content<I18nPort: I18nDrivenPort + 'static>(i18n: &I18nPort, url: 
             }
         }
     )
-}
-
-#[cfg(test)]
-mod tests {
-    use common::adapters::i18n_embedded_adapter::I18nEmbeddedFtlAdapter;
-    use dioxus::prelude::*;
-    use dioxus_ssr::render_element;
-    use common::application_error;
-    use common::domain::errors::ApplicationError;
-    use common::domain::text_keys::TextKeys::*;
-    use common::ports::i18n_driven_port::I18nDrivenPort;
-    use crate::ui::views::login::LoginView;
-
-    #[component]
-    fn TestLoginView(initial: Option<Result<String, ApplicationError>>) -> Element {
-        let i18n = I18nEmbeddedFtlAdapter::load();
-
-        let auth_result = use_signal(|| initial);
-
-        rsx! {
-            LoginView {
-                auth_result: auth_result,
-                i18n: i18n
-            }
-        }
-    }
-
-    #[test]
-    fn login_view_shows_connecting_message_when_auth_result_is_none() {
-        let i18n = I18nEmbeddedFtlAdapter::load();
-
-        let html = render_element(rsx! {
-        TestLoginView {
-            initial: None::<Result<String, ApplicationError>>
-        }
-    });
-
-        let expected = i18n.t(ConnectingToServiceMessage);
-
-        assert!(
-            html.contains(&expected),
-            "Expected connecting message '{}', got HTML: {}",
-            expected,
-            html
-        );
-    }
-
-    #[test]
-    fn login_view_error() {
-        // Given: A localized error created via our macro
-        let error = application_error!(TokenRequestFailed, "connection_refused");
-
-        // When: Rendering the view via SSR
-        let html = render_element(rsx! {
-            TestLoginView { initial: Some(Err(error)) }
-        });
-
-        // Then: The UI should contain the translated string and the dynamic parameter.
-        // This verifies that the UI "bridge" to our i18n system is working.
-        assert!(html.contains("connection_refused"));
-    }
 }

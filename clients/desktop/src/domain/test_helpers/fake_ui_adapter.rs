@@ -8,6 +8,7 @@ pub struct FakeUIAdapter {
     error: Arc<Mutex<Option<ApplicationError>>>,
     home_view_shown: Arc<Mutex<bool>>,
     loading_view_shown: Arc<Mutex<bool>>,
+    login_url: Arc<Mutex<Option<String>>>,
 }
 
 impl FakeUIAdapter {
@@ -17,6 +18,7 @@ impl FakeUIAdapter {
             error: Arc::new(Mutex::new(None)),
             home_view_shown: Arc::new(Mutex::new(false)),
             loading_view_shown: Arc::new(Mutex::new(false)),
+            login_url: Arc::new(Mutex::new(None)),
         }
     }
 
@@ -28,10 +30,6 @@ impl FakeUIAdapter {
         self.error.lock().unwrap().is_some()
     }
 
-    pub fn get_error(&self) -> Option<ApplicationError> {
-        self.error.lock().unwrap().clone()
-    }
-
     pub fn home_view_was_shown(&self) -> bool {
         *self.home_view_shown.lock().unwrap()
     }
@@ -39,22 +37,25 @@ impl FakeUIAdapter {
     pub fn loading_view_was_shown(&self) -> bool {
         *self.loading_view_shown.lock().unwrap()
     }
+
+    pub fn login_url_shown(&self) -> Option<String> { self.login_url.lock().unwrap().clone() }
 }
 
 impl UIDrivenPort for FakeUIAdapter {
-    fn show_login_view(&self) {
+    fn show_login_view(&mut self, url: String) {
         *self.login_view_shown.lock().unwrap() = true;
+        *self.login_url.lock().unwrap() = Some(url);
     }
 
-    fn show_error_view(&self, error: ApplicationError) {
+    fn show_error_view(&mut self, error: ApplicationError) {
         *self.error.lock().unwrap() = Some(error);
     }
 
-    fn show_home_view(&self) {
+    fn show_home_view(&mut self) {
         *self.home_view_shown.lock().unwrap() = true;
     }
 
-    fn show_loading_view(&self) {
+    fn show_loading_view(&mut self) {
         *self.loading_view_shown.lock().unwrap() = true;
     }
 }
