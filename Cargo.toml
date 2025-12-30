@@ -1,0 +1,10 @@
+[workspace]
+members = [
+    "common",
+    "clients/desktop",
+    "server/adapters",
+    "server/engine",
+    "server/service",
+]
+
+resolver = "2"
