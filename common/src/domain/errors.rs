@@ -180,6 +180,14 @@ impl TryFrom<ServerEvent> for ApplicationError {
     }
 }
 
+impl From<ApplicationErrorEvent> for ApplicationError {
+    fn from(err: ApplicationErrorEvent) -> Self {
+        let text_key = err.key.parse().unwrap_or(TextKeys::ConnectionErrorMessage);
+        let detail = err.args.get("detail").cloned();
+        ApplicationError { text_key, detail }
+    }
+}
+
 
 
 #[cfg(test)]
