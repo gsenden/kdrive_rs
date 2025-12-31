@@ -12,7 +12,15 @@ pub struct TokenStoreKeyRingAdapter;
 
 impl TokenStoreDrivenPort for TokenStoreKeyRingAdapter {
     fn is_available(&self) -> bool {
-        Entry::new(KEYRING_SERVICE, KEYRING_USER).is_ok()
+        let entry = Entry::new(KEYRING_SERVICE, KEYRING_USER);
+        let result = entry.unwrap().get_password();
+        match result {
+            Ok(_) => true,
+            Err(error) => match error {
+                keyring::Error::NoEntry => true,
+                _ => false,
+            }
+        }
     }
 
     fn load(&self) -> Result<Option<Tokens>, ApplicationError> {
