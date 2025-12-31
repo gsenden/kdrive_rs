@@ -14,7 +14,7 @@ use common::domain::text_keys::TextKeys::FailedToLoadLinuxIcon;
 use common::domain::text_keys::TextKeys::WindowTitle;
 use crate::adapters::dioxus_adapter::DioxusAdapter;
 use crate::domain::ui_core::UICore;
-use crate::ports::driven::ui_driven_port::UIDrivenPort;
+
 use crate::ui::views::ConnectingView;
 
 mod adapters;
@@ -27,7 +27,7 @@ const TAILWIND_CSS: Asset = asset!("/assets/tailwind.css");
 const SUISSE_FONT: Asset = asset!("/assets/suisse-intl-400-normal.woff2");
 
 fn main() {
-    dioxus::launch(App);
+    launch(App);
 }
 #[component]
 fn App() -> Element {
