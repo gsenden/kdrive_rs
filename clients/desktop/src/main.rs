@@ -14,7 +14,8 @@ use common::domain::text_keys::TextKeys::FailedToLoadLinuxIcon;
 use common::domain::text_keys::TextKeys::WindowTitle;
 use crate::adapters::dioxus_adapter::DioxusAdapter;
 use crate::domain::ui_core::UICore;
-
+use crate::ports::driven::ui_driven_port::UIDrivenPort;
+use crate::ui::views::ConnectingView;
 
 mod adapters;
 mod domain;
@@ -31,9 +32,12 @@ fn main() {
 #[component]
 fn App() -> Element {
     let window = use_window();
-    let element_signal = use_signal(|| rsx! { "Loading..." });
-
     let i18n = use_hook(|| I18nEmbeddedFtlAdapter::load());
+
+    let i18n_for_signal = i18n.clone();
+    let element_signal =
+        use_signal(move || rsx! { ConnectingView { i18n: i18n_for_signal.clone() } });
+
 
     let i18n_for_window = i18n.clone();
     use_effect(move || {
