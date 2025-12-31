@@ -21,11 +21,9 @@ futures-util = "0.3.31"
 image = "0.25.9"
 
 [dev-dependencies]
-dioxus-ssr = "0.7.2"
 
 [build-dependencies]
 tonic-prost-build = "0.14.2"
-dioxus-ssr = "0.7.2"
 
 [features]
 default = ["desktop"]
