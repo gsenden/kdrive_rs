@@ -130,7 +130,7 @@ mod tests {
     use engine::domain::test_helpers::fake_token_store_adapter::{
         FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter
     };
-    use engine::domain::test_helpers::test_store::TestStore;
+    use engine::domain::test_helpers::fake_token_store::FakeTokenStore;
     use crate::grpc_handler::KdriveServiceHandler;
 
     #[tokio::test]
@@ -139,7 +139,7 @@ mod tests {
         let fake_engine = FakeAuthenticatorDrivenAdapter::new_default();
         let fake_ring_tokens = FakeTokenStoreRingAdapter::with_tokens();
         let fake_file_tokens = FakeTokenStoreFileAdapter::with_tokens();
-        let token_store: TestStore = TestStore::load(
+        let token_store: FakeTokenStore = FakeTokenStore::load(
             Some(fake_ring_tokens),
             Some(fake_file_tokens)
         ).unwrap();
@@ -162,7 +162,7 @@ mod tests {
         let fake_engine = FakeAuthenticatorDrivenAdapter::new_default();
         let fake_ring_tokens = FakeTokenStoreRingAdapter::empty();
         let fake_file_tokens = FakeTokenStoreFileAdapter::empty();
-        let token_store: TestStore = TestStore::load(
+        let token_store: FakeTokenStore = FakeTokenStore::load(
             Some(fake_ring_tokens),
             Some(fake_file_tokens)
         ).unwrap();
@@ -185,7 +185,7 @@ mod tests {
         let fake_engine = FakeAuthenticatorDrivenAdapter::new_default();
         let fake_ring_tokens = FakeTokenStoreRingAdapter::empty();
         let fake_file_tokens = FakeTokenStoreFileAdapter::empty();
-        let token_store: TestStore = TestStore::load(
+        let token_store: FakeTokenStore = FakeTokenStore::load(
             Some(fake_ring_tokens),
             Some(fake_file_tokens)
         ).unwrap();
@@ -212,7 +212,7 @@ mod tests {
         let fake_engine = FakeAuthenticatorDrivenAdapter::new_default_failing();
         let fake_ring_tokens = FakeTokenStoreRingAdapter::empty();
         let fake_file_tokens = FakeTokenStoreFileAdapter::empty();
-        let token_store: TestStore = TestStore::load(
+        let token_store: FakeTokenStore = FakeTokenStore::load(
             Some(fake_ring_tokens),
             Some(fake_file_tokens)
         ).unwrap();

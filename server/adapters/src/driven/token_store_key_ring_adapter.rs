@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use keyring::Entry;
 use common::application_error;
 use common::domain::errors::ApplicationError;
-use common::domain::text_keys::TextKeys::{CouldNotAccessKeyring, CouldNotParseJson, CouldNotReadTokensFromKeyring, CouldNotSaveTokensToKeyring, CouldNotSerializeTokens};
+use common::domain::text_keys::TextKeys::{CouldNotAccessKeyring, CouldNotParseJson, CouldNotReadTokensFromKeyring, CouldNotSaveTokensToKeyring, CouldNotSerializeTokens, KeyringNotAvailable};
 use engine::domain::tokens::Tokens;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -24,16 +24,20 @@ impl TokenStoreDrivenPort for TokenStoreKeyRingAdapter {
     }
 
     fn load(&self) -> Result<Option<Tokens>, ApplicationError> {
+        if !self.is_available() {
+            return Err(application_error!(KeyringNotAvailable));
+        }
+        
         let entry = Entry::new(KEYRING_SERVICE, KEYRING_USER)
             .map_err(|e| application_error!(CouldNotAccessKeyring, e.to_string()) )?;
 
         let json = match entry.get_password() {
             Ok(json) => json,
             Err(error) => {
-                if error.to_string().contains("No matching entry") {
-                    return Ok(None);
+                return match error {
+                    keyring::Error::NoEntry => Ok(None),
+                    _ => Err(application_error!(CouldNotReadTokensFromKeyring, error.to_string()))
                 }
-                return Err( application_error!(CouldNotReadTokensFromKeyring, error.to_string()) );
             }
         };
 
@@ -66,13 +70,15 @@ mod tests {
 
     #[test]
     fn token_store_key_ring_adapter_returns_ok_none_when_entry_not_found() {
-        // Given a KeyRingAdapter
         let adapter = TokenStoreKeyRingAdapter;
 
-        // When we load tokens (entry doesn't exist)
-        let result = adapter.load();
+        if !adapter.is_available() {
+            println!("Keyring not available, skipping test");
+            return;
+        }
 
-        // Then we get Ok(None), not an error
+        let result = adapter.load();
+        dbg!(&result);
         assert_eq!(result.unwrap(), None);
     }
 }

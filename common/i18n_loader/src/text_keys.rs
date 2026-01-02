@@ -52,4 +52,6 @@ pub enum TextKeys {
     ParserError,
     TransportError,
     LoadingMessage,
+    NotAuthenticated,
+    KeyringNotAvailable,
 }

@@ -35,3 +35,5 @@ AuthFlowCompleted = KDrive Rust is now authenticated
 ParserError = Failed to parse: { $reason }
 TransportError = Transport Error: { $reason }
 LoadingMessage = Loading
+NotAuthenticated = The application has not been authenticated yet
+KeyringNotAvailable = Trying to use the Keyring on your OS while it is not available. This is a bug.

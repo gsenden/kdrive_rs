@@ -5,7 +5,7 @@ use engine::domain::test_helpers::fake_event_bus::FakeEventBus;
 use engine::domain::test_helpers::fake_token_store_adapter::{
     FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter
 };
-use engine::domain::test_helpers::test_store::TestStore;
+use engine::domain::test_helpers::fake_token_store::FakeTokenStore;
 use kdrive_service::grpc_handler::KdriveServiceHandler;
 use tonic::transport::Server;
 use std::net::SocketAddr;
@@ -28,7 +28,7 @@ async fn start_test_server() -> Result<(SocketAddr, tokio::task::JoinHandle<()>)
     let fake_ring_tokens = FakeTokenStoreRingAdapter::empty();
     let fake_file_tokens = FakeTokenStoreFileAdapter::empty();
 
-    let token_store: TestStore = TestStore::load(
+    let token_store: FakeTokenStore = FakeTokenStore::load(
         Some(fake_ring_tokens),
         Some(fake_file_tokens),
     )?;

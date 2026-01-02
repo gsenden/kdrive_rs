@@ -123,24 +123,24 @@ for TokenStore<TRP, TFP>
 #[cfg(test)]
 mod tests {
     use crate::domain::test_helpers::fake_token_store_adapter::*;
-    use crate::domain::test_helpers::test_store::TestStore;
+    use crate::domain::test_helpers::fake_token_store::FakeTokenStore;
     use crate::ports::driven::token_store_driven_port::TokenStoreDrivenPort;
     use crate::ports::driving::token_store_driving_port::TokenStoreDrivingPort;
 
-    fn file_only_store() -> TestStore {
+    fn file_only_store() -> FakeTokenStore {
         let file_store_adapter = FakeTokenStoreFileAdapter::with_tokens();
-        TestStore::load(None, Some(file_store_adapter)).unwrap()
+        FakeTokenStore::load(None, Some(file_store_adapter)).unwrap()
     }
 
-    fn ring_only_store() -> TestStore {
+    fn ring_only_store() -> FakeTokenStore {
         let ring_store_adapter = FakeTokenStoreRingAdapter::with_tokens();
-        TestStore::load(Some(ring_store_adapter), None).unwrap()
+        FakeTokenStore::load(Some(ring_store_adapter), None).unwrap()
     }
 
-    fn both_store() -> TestStore {
+    fn both_store() -> FakeTokenStore {
         let ring_store_adapter = FakeTokenStoreRingAdapter::with_tokens();
         let file_store_adapter = FakeTokenStoreFileAdapter::with_tokens();
-        TestStore::load(Some(ring_store_adapter), Some(file_store_adapter)).unwrap()
+        FakeTokenStore::load(Some(ring_store_adapter), Some(file_store_adapter)).unwrap()
     }
 
     #[test]
@@ -148,7 +148,7 @@ mod tests {
         let file_store_adapter = FakeTokenStoreFileAdapter::with_tokens();
         let tokens = file_store_adapter.load().unwrap().unwrap();
 
-        let store_result = TestStore::new(tokens,None, Some(file_store_adapter));
+        let store_result = FakeTokenStore::new(tokens, None, Some(file_store_adapter));
 
         assert!(store_result.is_ok());
     }
@@ -158,7 +158,7 @@ mod tests {
         let file_store_adapter = FakeTokenStoreFileAdapter::with_tokens();
         let tokens = file_store_adapter.load().unwrap().unwrap();
 
-        let store_result = TestStore::new(tokens, None, None);
+        let store_result = FakeTokenStore::new(tokens, None, None);
 
         let err = store_result.expect_err("Expected MissingStorePort error");
 
@@ -231,7 +231,7 @@ mod tests {
         // Given a token store without tokens
         let ring_adapter = FakeTokenStoreRingAdapter::empty();
         let store =
-            TestStore::load(Some(ring_adapter), None).unwrap();
+            FakeTokenStore::load(Some(ring_adapter), None).unwrap();
 
         // When has_tokens is called
         let result = store.has_tokens();
