@@ -2,6 +2,7 @@ use std::sync::{Arc, Mutex};
 use common::domain::errors::ApplicationError;
 use crate::ports::driven::ui_driven_port::UIDrivenPort;
 
+#[allow(dead_code)]
 #[derive(Clone)]
 pub struct FakeUIAdapter {
     login_view_shown: Arc<Mutex<bool>>,
@@ -11,6 +12,7 @@ pub struct FakeUIAdapter {
     login_url: Arc<Mutex<Option<String>>>,
 }
 
+#[allow(dead_code)]
 impl FakeUIAdapter {
     pub fn new() -> Self {
         Self {

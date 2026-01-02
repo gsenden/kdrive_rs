@@ -18,9 +18,11 @@ use tonic::codegen::tokio_stream::Stream;
 
 /// --- Fake gRPC service ---
 /// This service immediately emits AuthFlowCompleted when SubscribeEvents is called
+#[allow(dead_code)]
 #[derive(Default)]
 struct FakeKdriveService;
 
+#[allow(dead_code)]
 type EventStream =
 Pin<Box<dyn Stream<Item = Result<ServerEvent, Status>> + Send>>;
 
@@ -66,6 +68,7 @@ impl KdriveService for FakeKdriveService {
     }
 }
 
+#[allow(dead_code)]
 pub async fn start_test_server() -> (String, JoinHandle<()>) {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();

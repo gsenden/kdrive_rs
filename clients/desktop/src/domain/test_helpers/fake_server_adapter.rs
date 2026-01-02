@@ -9,8 +9,8 @@ use crate::ports::driven::server_driven_port::ServerDrivenPort;
 
 pub const TEST_URL_RESPONSE: &str = "http://localhost:8080/test-url-response";
 
-#[derive(PartialEq)]
-#[derive(Clone)]
+#[allow(dead_code)]
+#[derive(PartialEq, Clone)]
 pub struct FakeServerAdapter {
     authenticated: bool,
     error: Option<ApplicationError>,
@@ -18,6 +18,7 @@ pub struct FakeServerAdapter {
     event: Option<ServerEvent>,
 }
 
+#[allow(dead_code)]
 impl FakeServerAdapter {
 
     pub fn new(authenticated: bool) -> Self {
