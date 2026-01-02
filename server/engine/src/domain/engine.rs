@@ -1,37 +1,45 @@
 use common::domain::errors::ApplicationError;
+use crate::domain::cloud_sync_state::CloudSyncState;
 use crate::domain::events::EngineEvent;
 use crate::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 use crate::ports::driven::event_bus_driven_port::EventBusDrivenPort;
+use crate::ports::driven::metadata_driven_port::MetadataDrivenPort;
 use crate::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
 use crate::ports::driving::token_store_driving_port::TokenStoreDrivingPort;
 
-pub struct Engine<AuthPort, TokenPort, EventPort>
-where
-    AuthPort: AuthenticatorDrivenPort,
-    TokenPort: TokenStoreDrivingPort,
-    EventPort: EventBusDrivenPort
-{
-    authenticator_driven_port: AuthPort,
-    #[allow(dead_code)]
-    token_store: TokenPort,
-    pub event_bus: EventPort,
-}
-
-impl<AuthPort, TokenPort, EventPort> Engine<AuthPort, TokenPort, EventPort>
+pub struct Engine<AuthPort, TokenPort, EventPort, MetadataPort>
 where
     AuthPort: AuthenticatorDrivenPort,
     TokenPort: TokenStoreDrivingPort,
     EventPort: EventBusDrivenPort,
+    MetadataPort: MetadataDrivenPort,
+{
+    authenticator_driven_port: AuthPort,
+    token_store: TokenPort,
+    event_bus: EventPort,
+    #[allow(dead_code)]
+    metadata_driven_port: MetadataPort,
+}
+
+impl<AuthPort, TokenPort, EventPort, MetadataPort> Engine<AuthPort, TokenPort, EventPort, MetadataPort>
+where
+    AuthPort: AuthenticatorDrivenPort,
+    TokenPort: TokenStoreDrivingPort,
+    EventPort: EventBusDrivenPort,
+    MetadataPort: MetadataDrivenPort,
 {
     pub fn new(
         authenticator_port: AuthPort,
         token_store: TokenPort,
-        event_bus: EventPort
+        event_bus: EventPort,
+        metadata_driven_port: MetadataPort
+
     ) -> Self {
         Engine {
             authenticator_driven_port: authenticator_port,
             token_store,
-            event_bus
+            event_bus,
+            metadata_driven_port
         }
     }
 
@@ -56,13 +64,18 @@ where
         self.token_store.save_tokens(&tokens)?;
         Ok(())
     }
+
+    pub fn determine_kdrive_sync_state(&self) -> CloudSyncState {
+        CloudSyncState::NoMetadata
+    }
 }
 
-impl<AuthPort, TokenPort, EventPort> AuthenticatorDrivingPort for Engine<AuthPort, TokenPort, EventPort>
+impl<AuthPort, TokenPort, EventPort, MetadataPort> AuthenticatorDrivingPort for Engine<AuthPort, TokenPort, EventPort, MetadataPort>
 where
     AuthPort: AuthenticatorDrivenPort,
     TokenPort: TokenStoreDrivingPort,
-    EventPort: EventBusDrivenPort
+    EventPort: EventBusDrivenPort,
+    MetadataPort: MetadataDrivenPort
 {
     fn is_authenticated(&self) -> bool {
         self.token_store.has_tokens()
@@ -71,11 +84,13 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::cloud_sync_state::CloudSyncState;
     use crate::domain::engine::Engine;
     use crate::domain::events::EngineEvent;
     use crate::domain::test_helpers::fake_authenticator_adapter::FakeAuthenticatorDrivenAdapter;
     use crate::domain::test_helpers::fake_event_bus::FakeEventBus;
-    use crate::domain::test_helpers::fake_token_store_adapter::{FakeTokenStoreFileAdapter, FakeTokenStoreRingAdapter};
+    use crate::domain::test_helpers::fake_metadata_store::FakeMetadataStore;
+    use crate::domain::test_helpers::fake_token_store_adapter::FakeTokenStoreRingAdapter;
     use crate::domain::test_helpers::fake_token_store::FakeTokenStore;
     use crate::domain::tokens::TokenStore;
     use crate::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
@@ -84,6 +99,7 @@ mod tests {
         auth: FakeAuthenticatorDrivenAdapter,
         token_store: FakeTokenStore,
         event_bus: FakeEventBus,
+        metadata_store: FakeMetadataStore
     }
 
     impl TestEngineBuilder {
@@ -94,7 +110,9 @@ mod tests {
                     Some(FakeTokenStoreRingAdapter::with_tokens()),
                     None
                 ).unwrap(),
-                event_bus: FakeEventBus::new()
+                event_bus: FakeEventBus::new(),
+                metadata_store: FakeMetadataStore::new()
+
             }
         }
 
@@ -111,12 +129,18 @@ mod tests {
             self
         }
 
-        pub fn build(self) -> Engine<FakeAuthenticatorDrivenAdapter, FakeTokenStore, FakeEventBus>
+        pub fn with_metadata(mut self, metadata_store: FakeMetadataStore) -> Self {
+            self.metadata_store = metadata_store;
+            self
+        }
+
+        pub fn build(self) -> Engine<FakeAuthenticatorDrivenAdapter, FakeTokenStore, FakeEventBus, FakeMetadataStore>
         {
             Engine::new(
                 self.auth,
                 self.token_store,
-                self.event_bus
+                self.event_bus,
+                self.metadata_store
             )
         }
     }
@@ -217,15 +241,8 @@ mod tests {
     #[tokio::test]
     async fn engine_persists_tokens_after_auth_flow() {
         // Given an engine with token store
-        let adapter = FakeAuthenticatorDrivenAdapter::new_default();
-        let fake_ring_tokens = FakeTokenStoreRingAdapter::empty();
-        let fake_file_tokens = FakeTokenStoreFileAdapter::empty();
-        let token_store: FakeTokenStore = FakeTokenStore::load(
-            Some(fake_ring_tokens),
-            Some(fake_file_tokens)
-        ).unwrap();
-        let event_bus = FakeEventBus::new();
-        let mut engine = Engine::new(adapter, token_store, event_bus);
+        let mut engine = TestEngineBuilder::new()
+            .build();
 
         // When auth flow completes
         _ = engine.start_initial_auth_flow().await;
@@ -233,6 +250,20 @@ mod tests {
 
         // Then tokens are persisted
         assert!(engine.is_authenticated());
+    }
+
+    #[test]
+    fn engine_reports_no_metadata_when_no_local_kdrive_state_exists() {
+        // Given: an engine with no local KDrive metadata
+        let engine = TestEngineBuilder::new()
+            .with_metadata(FakeMetadataStore::without_metadata())
+            .build();
+
+        // When: determining the current KDrive sync state
+        let state = engine.determine_kdrive_sync_state();
+
+        // Then: the engine reports that no metadata exists
+        assert_eq!(state,CloudSyncState::NoMetadata);
     }
 
 }

@@ -1,0 +1,4 @@
+#[derive(Debug, PartialEq)]
+pub enum CloudSyncState {
+    NoMetadata
+}

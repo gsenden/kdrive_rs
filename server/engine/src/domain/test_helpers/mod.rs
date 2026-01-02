@@ -5,3 +5,4 @@ pub mod fake_token_store;
 pub mod fake_event_bus;
 pub mod fake_i18n;
 pub mod fake_authenticator_adapter_slow;
+pub mod fake_metadata_store;
