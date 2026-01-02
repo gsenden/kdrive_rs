@@ -126,6 +126,7 @@ mod tests {
     use common::kdrive::kdrive_service_server::KdriveService;
     use engine::domain::engine::Engine;
     use engine::domain::test_helpers::fake_authenticator_adapter::FakeAuthenticatorDrivenAdapter;
+    use engine::domain::test_helpers::fake_authenticator_adapter_slow::SlowAuthenticatorAdapter;
     use engine::domain::test_helpers::fake_event_bus::FakeEventBus;
     use engine::domain::test_helpers::fake_token_store_adapter::{
         FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter
@@ -207,9 +208,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn complete_auth_flow_returns_error_when_auth_fails() {
-        // Given a handler with engine
-        let fake_engine = FakeAuthenticatorDrivenAdapter::new_default_failing();
+    async fn continue_auth_flow_does_not_wait_for_completion() {
+        // Given a handler with a SLOW adapter
+        let slow_adapter = SlowAuthenticatorAdapter;
         let fake_ring_tokens = FakeTokenStoreRingAdapter::empty();
         let fake_file_tokens = FakeTokenStoreFileAdapter::empty();
         let token_store: FakeTokenStore = FakeTokenStore::load(
@@ -217,15 +218,17 @@ mod tests {
             Some(fake_file_tokens)
         ).unwrap();
         let fake_events = FakeEventBus::new();
-        let engine = Engine::new(fake_engine, token_store, fake_events);
+        let engine = Engine::new(slow_adapter, token_store, fake_events);
         let event_bus = EventBusAdapter::new();
         let handler = KdriveServiceHandler::new(engine, event_bus);
+        // ... setup met slow_adapter ...
 
-        // When we call complete_auth_flow without starting flow
-        let request = Request::new(Empty {});
-        let response = handler.continue_initial_auth_flow(request).await;
+        // When we call continue_initial_auth_flow
+        let start = std::time::Instant::now();
+        let response = handler.continue_initial_auth_flow(Request::new(Empty {})).await;
+        let elapsed = start.elapsed();
 
-        // Then we get an error status
-        assert!(response.is_err());
+        // Then it returns immediately, NOT after 2+ seconds
+        assert!(elapsed < std::time::Duration::from_millis(100));
     }
 }

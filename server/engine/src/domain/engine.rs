@@ -1,6 +1,4 @@
-use common::application_error;
 use common::domain::errors::ApplicationError;
-use common::domain::text_keys::TextKeys::NotAuthenticated;
 use crate::domain::events::EngineEvent;
 use crate::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 use crate::ports::driven::event_bus_driven_port::EventBusDrivenPort;
@@ -38,11 +36,7 @@ where
     }
 
     pub async fn start_initial_auth_flow(&mut self) -> Result<String, ApplicationError> {
-        if self.is_authenticated() {
-            self.authenticator_driven_port.start_initial_auth_flow().await
-        } else {
-            Err(application_error!(NotAuthenticated))
-        }
+        self.authenticator_driven_port.start_initial_auth_flow().await
     }
 
     pub async fn continue_initial_auth_flow(&mut self) {
@@ -77,8 +71,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use common::application_error;
-    use common::domain::text_keys::TextKeys::NotAuthenticated;
     use crate::domain::engine::Engine;
     use crate::domain::events::EngineEvent;
     use crate::domain::test_helpers::fake_authenticator_adapter::FakeAuthenticatorDrivenAdapter;
@@ -173,23 +165,6 @@ mod tests {
         // Then it returns a valid auth URL
         assert!(result.is_ok());
     }
-
-    #[tokio::test]
-    async fn engine_returns_error_when_starting_auth_flow_and_not_authenticated() {
-        // Given an unauthenticated engine with a token store with no tokens
-        let mut engine = TestEngineBuilder::new()
-            .with_empty_token_store()
-            .build();
-
-        // When start_initial_auth_flow is called
-        let result = engine.start_initial_auth_flow().await;
-
-        // Then it returns a valid auth URL
-        let expected_error = Err(application_error!(NotAuthenticated));
-        assert_eq!(result, expected_error);
-    }
-
-    // new test: start_initial_auth_flow when not authenticated
 
     #[tokio::test]
     async fn engine_can_complete_full_auth_flow() {
