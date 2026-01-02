@@ -102,10 +102,6 @@ mod tests {
             self.auth = auth;
             self
         }
-        pub fn with_token_store(mut self, token_store: FakeTokenStore) -> Self {
-            self.token_store = token_store;
-            self
-        }
 
         pub fn with_empty_token_store(mut self) -> Self {
             self.token_store = TokenStore::load(

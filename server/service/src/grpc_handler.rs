@@ -225,7 +225,7 @@ mod tests {
 
         // When we call continue_initial_auth_flow
         let start = std::time::Instant::now();
-        let response = handler.continue_initial_auth_flow(Request::new(Empty {})).await;
+        _ = handler.continue_initial_auth_flow(Request::new(Empty {})).await;
         let elapsed = start.elapsed();
 
         // Then it returns immediately, NOT after 2+ seconds
