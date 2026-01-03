@@ -47,6 +47,10 @@ impl TestEngineBuilder {
         self
     }
 
+    pub fn without_index(&self) -> Self {
+        todo!()
+    }
+
     pub fn build(self) -> Engine<FakeAuthenticatorDrivenAdapter, FakeTokenStore, FakeEventBus, FakeMetadataStore>
     {
         Engine::new(

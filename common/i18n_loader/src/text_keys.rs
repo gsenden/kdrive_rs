@@ -54,4 +54,5 @@ pub enum TextKeys {
     LoadingMessage,
     NotAuthenticated,
     KeyringNotAvailable,
+    NotImplemented,
 }

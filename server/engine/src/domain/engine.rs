@@ -1,10 +1,14 @@
+use common::application_error;
+use common::domain::directory_listing::DirectoryListing;
 use common::domain::errors::ApplicationError;
+use common::domain::text_keys::TextKeys::NotImplemented;
 use crate::domain::cloud_sync_state::CloudSyncState;
 use crate::domain::events::EngineEvent;
 use crate::ports::driven::authenticator_driven_port::AuthenticatorDrivenPort;
 use crate::ports::driven::event_bus_driven_port::EventBusDrivenPort;
 use crate::ports::driven::metadata_driven_port::MetadataDrivenPort;
 use crate::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
+use crate::ports::driving::data_driving_port::DataDrivingPort;
 use crate::ports::driving::token_store_driving_port::TokenStoreDrivingPort;
 
 pub struct Engine<AuthPort, TokenPort, EventPort, MetadataPort>
@@ -65,7 +69,7 @@ where
         Ok(())
     }
 
-    pub fn determine_kdrive_sync_state(&self) -> CloudSyncState {
+    fn determine_cloud_sync_state(&self) -> CloudSyncState {
         match self.metadata_driven_port.has_metadata() {
             true => CloudSyncState::MetadataPresent,
             false => CloudSyncState::NoMetadata,
@@ -85,6 +89,18 @@ where
     }
 }
 
+impl<AuthPort, TokenPort, EventPort, MetadataPort> DataDrivingPort for Engine<AuthPort, TokenPort, EventPort, MetadataPort>
+where
+    AuthPort: AuthenticatorDrivenPort,
+    TokenPort: TokenStoreDrivingPort,
+    EventPort: EventBusDrivenPort,
+    MetadataPort: MetadataDrivenPort
+{
+    fn get_directory_listing(&self, path: String, depth: u32) -> Result<DirectoryListing, ApplicationError> {
+        Err(application_error!(NotImplemented))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::domain::cloud_sync_state::CloudSyncState;
@@ -93,6 +109,26 @@ mod tests {
     use crate::domain::test_helpers::fake_metadata_store::FakeMetadataStore;
     use crate::domain::test_helpers::test_engine_builder::TestEngineBuilder;
     use crate::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
+    use crate::ports::driving::data_driving_port::DataDrivingPort;
+
+    #[test]
+    fn user_can_view_cloud_files_for_the_first_time() {
+        // Given: an authenticated user and no local cloud structure
+        let engine = TestEngineBuilder::new()
+            .without_index()
+            .build();
+        
+        // And: a valid path and depth that will be provided by the user
+        let path = "/".to_string();
+        let depth = 1;
+        
+
+        // When: the user requests a file overview
+        let result = engine.get_directory_listing(path, depth);
+
+        // Then: a file overview is returned
+        assert!(result.is_ok());
+    }
 
     #[test]
     fn engine_reports_metadata_present_when_local_cloud_metadata_exists() {
@@ -101,7 +137,7 @@ mod tests {
             .build();
 
         // When: determining the current cloud sync state
-        let state = engine.determine_kdrive_sync_state();
+        let state = engine.determine_cloud_sync_state();
 
         // Then: the engine reports metadata is present
         assert_eq!(state, CloudSyncState::MetadataPresent);
@@ -115,7 +151,7 @@ mod tests {
             .build();
 
         // When: determining the current KDrive sync state
-        let state = engine.determine_kdrive_sync_state();
+        let state = engine.determine_cloud_sync_state();
 
         // Then: the engine reports that no metadata exists
         assert_eq!(state,CloudSyncState::NoMetadata);

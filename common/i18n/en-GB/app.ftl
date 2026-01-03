@@ -37,3 +37,4 @@ TransportError = Transport Error: { $reason }
 LoadingMessage = Loading
 NotAuthenticated = The application has not been authenticated yet
 KeyringNotAvailable = Trying to use the Keyring on your OS while it is not available. This is a bug.
+NotImplemented = This functionality has not been implemented yet
