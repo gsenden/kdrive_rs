@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use common::application_error;
 use common::domain::directory_listing::DirectoryListing;
 use common::domain::errors::ApplicationError;
@@ -47,20 +48,7 @@ where
         }
     }
 
-    pub async fn start_initial_auth_flow(&mut self) -> Result<String, ApplicationError> {
-        self.authenticator_driven_port.start_initial_auth_flow().await
-    }
 
-    pub async fn continue_initial_auth_flow(&mut self) {
-        let result = self.do_auth_flow().await;
-
-        let event = match result {
-            Ok(()) => EngineEvent::AuthFlowCompleted,
-            Err(error) => EngineEvent::AuthFlowFailed { reason: error },
-        };
-
-        let _ = self.event_bus.emit(event);
-    }
 
     async fn do_auth_flow(&mut self) -> Result<(), ApplicationError> {
         self.authenticator_driven_port.continue_initial_auth_flow().await?;
@@ -77,15 +65,30 @@ where
     }
 }
 
+#[async_trait]
 impl<AuthPort, TokenPort, EventPort, MetadataPort> AuthenticatorDrivingPort for Engine<AuthPort, TokenPort, EventPort, MetadataPort>
 where
-    AuthPort: AuthenticatorDrivenPort,
-    TokenPort: TokenStoreDrivingPort,
-    EventPort: EventBusDrivenPort,
-    MetadataPort: MetadataDrivenPort
+    AuthPort: AuthenticatorDrivenPort + Send,
+    TokenPort: TokenStoreDrivingPort + Send,
+    EventPort: EventBusDrivenPort + Send,
+    MetadataPort: MetadataDrivenPort + Send,
 {
     fn is_authenticated(&self) -> bool {
         self.token_store.has_tokens()
+    }
+
+    async fn start_initial_auth_flow(&mut self) -> Result<String, ApplicationError> {
+        self.authenticator_driven_port.start_initial_auth_flow().await
+    }
+    async fn continue_initial_auth_flow(&mut self) {
+        let result = self.do_auth_flow().await;
+
+        let event = match result {
+            Ok(()) => EngineEvent::AuthFlowCompleted,
+            Err(error) => EngineEvent::AuthFlowFailed { reason: error },
+        };
+
+        let _ = self.event_bus.emit(event);
     }
 }
 
@@ -117,11 +120,11 @@ mod tests {
         let engine = TestEngineBuilder::new()
             .without_index()
             .build();
-        
+
         // And: a valid path and depth that will be provided by the user
         let path = "/".to_string();
         let depth = 1;
-        
+
 
         // When: the user requests a file overview
         let result = engine.get_directory_listing(path, depth);
