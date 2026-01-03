@@ -15,27 +15,30 @@ use futures_util::StreamExt;
 use common::kdrive::kdrive_service_server::KdriveService;
 use common::kdrive::{AuthFlowCompleted, AuthStatus, AuthUrlResponse, Empty, ServerEvent};
 use common::kdrive::server_event::Event as ServerEventKind;
+use engine::ports::driven::metadata_driven_port::MetadataDrivenPort;
 
 type EventStream = Pin<Box<dyn Stream<Item = Result<ServerEvent, Status>> + Send>>;
 
-pub struct KdriveServiceHandler<AuthPort, TokenPort, EventPort>
+pub struct KdriveServiceHandler<AuthPort, TokenPort, EventPort, MetadataPort>
 where
     AuthPort: AuthenticatorDrivenPort,
     TokenPort: TokenStoreDrivingPort,
-    EventPort: EventBusDrivenPort
+    EventPort: EventBusDrivenPort,
+    MetadataPort: MetadataDrivenPort
 {
-    engine: Arc<Mutex<Engine<AuthPort, TokenPort, EventPort>>>,
+    engine: Arc<Mutex<Engine<AuthPort, TokenPort, EventPort, MetadataPort>>>,
     event_bus: EventBusAdapter,
 }
 
-impl<AuthPort, TokenPort, EventPort> KdriveServiceHandler<AuthPort, TokenPort, EventPort>
+impl<AuthPort, TokenPort, EventPort, MetadataPort> KdriveServiceHandler<AuthPort, TokenPort, EventPort, MetadataPort>
 where
     AuthPort: AuthenticatorDrivenPort,
     TokenPort: TokenStoreDrivingPort,
-    EventPort: EventBusDrivenPort
+    EventPort: EventBusDrivenPort,
+    MetadataPort: MetadataDrivenPort
 {
     pub fn new(
-        engine: Engine<AuthPort, TokenPort, EventPort>,
+        engine: Engine<AuthPort, TokenPort, EventPort, MetadataPort>,
         event_bus: EventBusAdapter)
         -> Self
     {
@@ -47,12 +50,13 @@ where
 }
 
 #[tonic::async_trait]
-impl<AuthPort, TokenPort, EventPort>
-    KdriveService for KdriveServiceHandler<AuthPort, TokenPort, EventPort>
+impl<AuthPort, TokenPort, EventPort, MetadataPort>
+    KdriveService for KdriveServiceHandler<AuthPort, TokenPort, EventPort, MetadataPort>
 where
     AuthPort: AuthenticatorDrivenPort + Send + Sync + 'static,
     TokenPort: TokenStoreDrivingPort + Send + Sync + 'static,
-    EventPort: EventBusDrivenPort + Send + Sync + 'static
+    EventPort: EventBusDrivenPort + Send + Sync + 'static,
+    MetadataPort: MetadataDrivenPort + Send + Sync + 'static,
 {
     async fn is_authenticated(&self, _request: Request<Empty>)
         -> Result<Response<AuthStatus>, Status>
@@ -128,6 +132,7 @@ mod tests {
     use engine::domain::test_helpers::fake_authenticator_adapter::FakeAuthenticatorDrivenAdapter;
     use engine::domain::test_helpers::fake_authenticator_adapter_slow::SlowAuthenticatorAdapter;
     use engine::domain::test_helpers::fake_event_bus::FakeEventBus;
+    use engine::domain::test_helpers::fake_metadata_store::FakeMetadataStore;
     use engine::domain::test_helpers::fake_token_store_adapter::{
         FakeTokenStoreRingAdapter, FakeTokenStoreFileAdapter
     };
@@ -145,7 +150,8 @@ mod tests {
             Some(fake_file_tokens)
         ).unwrap();
         let fake_events = FakeEventBus::new();
-        let engine = Engine::new(fake_engine, token_store, fake_events);
+        let fake_metadata_store = FakeMetadataStore::new();
+        let engine = Engine::new(fake_engine, token_store, fake_events, fake_metadata_store);
         let event_bus = EventBusAdapter::new();
         let handler = KdriveServiceHandler::new(engine, event_bus);
 
@@ -168,7 +174,8 @@ mod tests {
             Some(fake_file_tokens)
         ).unwrap();
         let fake_events = FakeEventBus::new();
-        let engine = Engine::new(fake_engine, token_store, fake_events);
+        let fake_metadata_store = FakeMetadataStore::new();
+        let engine = Engine::new(fake_engine, token_store, fake_events, fake_metadata_store);
         let event_bus = EventBusAdapter::new();
         let handler = KdriveServiceHandler::new(engine, event_bus);
 
@@ -191,7 +198,8 @@ mod tests {
             Some(fake_file_tokens)
         ).unwrap();
         let fake_events = FakeEventBus::new();
-        let engine = Engine::new(fake_engine, token_store, fake_events);
+        let fake_metadata_store = FakeMetadataStore::new();
+        let engine = Engine::new(fake_engine, token_store, fake_events, fake_metadata_store);
         let event_bus = EventBusAdapter::new();
         let handler = KdriveServiceHandler::new(engine, event_bus);
 
@@ -218,7 +226,8 @@ mod tests {
             Some(fake_file_tokens)
         ).unwrap();
         let fake_events = FakeEventBus::new();
-        let engine = Engine::new(slow_adapter, token_store, fake_events);
+        let fake_metadata_store = FakeMetadataStore::new();
+        let engine = Engine::new(slow_adapter, token_store, fake_events, fake_metadata_store);
         let event_bus = EventBusAdapter::new();
         let handler = KdriveServiceHandler::new(engine, event_bus);
         // ... setup met slow_adapter ...

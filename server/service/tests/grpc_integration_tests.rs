@@ -17,6 +17,7 @@ use common::domain::errors::ApplicationError;
 use common::kdrive::Empty;
 use common::kdrive::kdrive_service_client::KdriveServiceClient;
 use common::kdrive::kdrive_service_server::KdriveServiceServer;
+use engine::domain::test_helpers::fake_metadata_store::FakeMetadataStore;
 
 async fn start_test_server() -> Result<(SocketAddr, tokio::task::JoinHandle<()>), ApplicationError> {
     let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -34,7 +35,9 @@ async fn start_test_server() -> Result<(SocketAddr, tokio::task::JoinHandle<()>)
     )?;
 
     let fake_events = FakeEventBus::new();
-    let engine = Engine::new(fake_engine, token_store, fake_events);
+    let fake_metadata = FakeMetadataStore::new();
+
+    let engine = Engine::new(fake_engine, token_store, fake_events, fake_metadata);
     let event_bus = EventBusAdapter::new();
     let handler = KdriveServiceHandler::new(engine, event_bus);
 

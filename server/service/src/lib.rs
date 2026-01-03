@@ -8,6 +8,7 @@ use crate::grpc_handler::KdriveServiceHandler;
 use std::net::SocketAddr;
 use adapters::driven::build_time_env_var_configurator_adapter::BuildTimeEnvVarConfiguratorPort;
 use adapters::driven::event_bus_adapter::EventBusAdapter;
+use adapters::driven::metadata_sqlite_adapter::MetadataSqliteAdapter;
 use engine::domain::engine::Engine;
 use adapters::driven::kdrive_authenticator_adapter::KDriveAuthenticator;
 use adapters::driven::token_store_file_adapter::TokenStoreFileAdapter;
@@ -24,13 +25,15 @@ pub async fn start_server(addr: SocketAddr) -> Result<(), ApplicationError> {
     let authenticator = KDriveAuthenticator::new_from_config(&config);
     let token_store =
         TokenStore::load(Some(TokenStoreKeyRingAdapter), Some(TokenStoreFileAdapter))?;
+    let metadata_store = MetadataSqliteAdapter::new();
 
     let event_bus = EventBusAdapter::new();
 
     let engine = Engine::new(
         authenticator,
         token_store,
-        event_bus.clone()
+        event_bus.clone(),
+        metadata_store,
     );
 
     let handler = KdriveServiceHandler::new(

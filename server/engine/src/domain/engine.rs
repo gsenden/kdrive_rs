@@ -85,64 +85,24 @@ where
 #[cfg(test)]
 mod tests {
     use crate::domain::cloud_sync_state::CloudSyncState;
-    use crate::domain::engine::Engine;
     use crate::domain::events::EngineEvent;
     use crate::domain::test_helpers::fake_authenticator_adapter::FakeAuthenticatorDrivenAdapter;
-    use crate::domain::test_helpers::fake_event_bus::FakeEventBus;
     use crate::domain::test_helpers::fake_metadata_store::FakeMetadataStore;
-    use crate::domain::test_helpers::fake_token_store_adapter::FakeTokenStoreRingAdapter;
-    use crate::domain::test_helpers::fake_token_store::FakeTokenStore;
-    use crate::domain::tokens::TokenStore;
+    use crate::domain::test_helpers::test_engine_builder::TestEngineBuilder;
     use crate::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
 
-    pub struct TestEngineBuilder {
-        auth: FakeAuthenticatorDrivenAdapter,
-        token_store: FakeTokenStore,
-        event_bus: FakeEventBus,
-        metadata_store: FakeMetadataStore
-    }
+    #[test]
+    fn engine_reports_no_metadata_when_no_local_kdrive_state_exists() {
+        // Given: an engine with no local KDrive metadata
+        let engine = TestEngineBuilder::new()
+            .with_metadata(FakeMetadataStore::without_metadata())
+            .build();
 
-    impl TestEngineBuilder {
-        pub fn new() -> Self {
-            Self {
-                auth: FakeAuthenticatorDrivenAdapter::new_default(),
-                token_store: TokenStore::load(
-                    Some(FakeTokenStoreRingAdapter::with_tokens()),
-                    None
-                ).unwrap(),
-                event_bus: FakeEventBus::new(),
-                metadata_store: FakeMetadataStore::new()
+        // When: determining the current KDrive sync state
+        let state = engine.determine_kdrive_sync_state();
 
-            }
-        }
-
-        pub fn with_auth(mut self, auth: FakeAuthenticatorDrivenAdapter) -> Self {
-            self.auth = auth;
-            self
-        }
-
-        pub fn with_empty_token_store(mut self) -> Self {
-            self.token_store = TokenStore::load(
-                Some(FakeTokenStoreRingAdapter::empty()),
-                None
-            ).unwrap();
-            self
-        }
-
-        pub fn with_metadata(mut self, metadata_store: FakeMetadataStore) -> Self {
-            self.metadata_store = metadata_store;
-            self
-        }
-
-        pub fn build(self) -> Engine<FakeAuthenticatorDrivenAdapter, FakeTokenStore, FakeEventBus, FakeMetadataStore>
-        {
-            Engine::new(
-                self.auth,
-                self.token_store,
-                self.event_bus,
-                self.metadata_store
-            )
-        }
+        // Then: the engine reports that no metadata exists
+        assert_eq!(state,CloudSyncState::NoMetadata);
     }
 
 
@@ -251,19 +211,4 @@ mod tests {
         // Then tokens are persisted
         assert!(engine.is_authenticated());
     }
-
-    #[test]
-    fn engine_reports_no_metadata_when_no_local_kdrive_state_exists() {
-        // Given: an engine with no local KDrive metadata
-        let engine = TestEngineBuilder::new()
-            .with_metadata(FakeMetadataStore::without_metadata())
-            .build();
-
-        // When: determining the current KDrive sync state
-        let state = engine.determine_kdrive_sync_state();
-
-        // Then: the engine reports that no metadata exists
-        assert_eq!(state,CloudSyncState::NoMetadata);
-    }
-
 }
