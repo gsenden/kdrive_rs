@@ -66,7 +66,10 @@ where
     }
 
     pub fn determine_kdrive_sync_state(&self) -> CloudSyncState {
-        CloudSyncState::NoMetadata
+        match self.metadata_driven_port.has_metadata() {
+            true => CloudSyncState::MetadataPresent,
+            false => CloudSyncState::NoMetadata,
+        }
     }
 }
 
@@ -92,7 +95,20 @@ mod tests {
     use crate::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
 
     #[test]
-    fn engine_reports_no_metadata_when_no_local_kdrive_state_exists() {
+    fn engine_reports_metadata_present_when_local_cloud_metadata_exists() {
+        // Given: an engine with existing local cloud metadata
+        let engine = TestEngineBuilder::new()
+            .build();
+
+        // When: determining the current cloud sync state
+        let state = engine.determine_kdrive_sync_state();
+
+        // Then: the engine reports metadata is present
+        assert_eq!(state, CloudSyncState::MetadataPresent);
+    }
+
+    #[test]
+    fn engine_reports_no_metadata_when_no_local_cloud_state_exists() {
         // Given: an engine with no local KDrive metadata
         let engine = TestEngineBuilder::new()
             .with_metadata(FakeMetadataStore::without_metadata())

@@ -8,4 +8,8 @@ impl MetadataSqliteAdapter {
     }
 }
 
-impl MetadataDrivenPort for MetadataSqliteAdapter {}
+impl MetadataDrivenPort for MetadataSqliteAdapter {
+    fn has_metadata(&self) -> bool {
+        todo!()
+    }
+}
