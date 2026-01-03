@@ -12,4 +12,8 @@ impl MetadataDrivenPort for MetadataSqliteAdapter {
     fn has_metadata(&self) -> bool {
         todo!()
     }
+
+    fn has_index(&self) -> bool {
+        todo!()
+    }
 }

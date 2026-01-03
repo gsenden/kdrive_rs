@@ -58,9 +58,13 @@ where
     }
 
     fn determine_cloud_sync_state(&self) -> CloudSyncState {
-        match self.metadata_driven_port.has_metadata() {
-            true => CloudSyncState::MetadataPresent,
-            false => CloudSyncState::NoMetadata,
+        match (
+            self.metadata_driven_port.has_metadata(),
+            self.metadata_driven_port.has_index(),
+        ) {
+            (false, _) => CloudSyncState::NoMetadata,
+            (true, false) => CloudSyncState::NotIndexed,
+            (true, true) => CloudSyncState::MetadataPresent,
         }
     }
 }
@@ -100,7 +104,18 @@ where
     MetadataPort: MetadataDrivenPort
 {
     fn get_directory_listing(&self, path: String, depth: u32) -> Result<DirectoryListing, ApplicationError> {
-        Err(application_error!(NotImplemented))
+        match self.determine_cloud_sync_state() {
+            CloudSyncState::NoMetadata => {
+                Err(application_error!(NotImplemented))
+            }
+            CloudSyncState::MetadataPresent => {
+                Err(application_error!(NotImplemented))
+            }
+            CloudSyncState::NotIndexed => {
+                Err(application_error!(NotImplemented))
+            }
+        }
+
     }
 }
 
@@ -109,13 +124,26 @@ mod tests {
     use crate::domain::cloud_sync_state::CloudSyncState;
     use crate::domain::events::EngineEvent;
     use crate::domain::test_helpers::fake_authenticator_adapter::FakeAuthenticatorDrivenAdapter;
-    use crate::domain::test_helpers::fake_metadata_store::FakeMetadataStore;
     use crate::domain::test_helpers::test_engine_builder::TestEngineBuilder;
     use crate::ports::driving::authenticator_driving_port::AuthenticatorDrivingPort;
     use crate::ports::driving::data_driving_port::DataDrivingPort;
 
     #[test]
-    fn user_can_view_cloud_files_for_the_first_time() {
+    fn engine_reports_not_indexed_when_cloud_metadata_exists_but_no_index_present() {
+        // Given: cloud metadata exists, but no index
+        let engine = TestEngineBuilder::new()
+            .without_index()
+            .build();
+
+        // When
+        let state = engine.determine_cloud_sync_state();
+
+        // Then
+        assert_eq!(state, CloudSyncState::NotIndexed);
+    }
+
+    #[test]
+    fn bdd_user_can_view_cloud_files_for_the_first_time() {
         // Given: an authenticated user and no local cloud structure
         let engine = TestEngineBuilder::new()
             .without_index()
@@ -150,7 +178,7 @@ mod tests {
     fn engine_reports_no_metadata_when_no_local_cloud_state_exists() {
         // Given: an engine with no local KDrive metadata
         let engine = TestEngineBuilder::new()
-            .with_metadata(FakeMetadataStore::without_metadata())
+            .without_metadata()
             .build();
 
         // When: determining the current KDrive sync state

@@ -42,13 +42,14 @@ impl TestEngineBuilder {
         self
     }
 
-    pub fn with_metadata(mut self, metadata_store: FakeMetadataStore) -> Self {
-        self.metadata_store = metadata_store;
+    pub fn without_metadata(mut self) -> Self {
+        self.metadata_store = FakeMetadataStore::new().without_metadata();
         self
     }
 
-    pub fn without_index(&self) -> Self {
-        todo!()
+    pub fn without_index(mut self) -> Self {
+        self.metadata_store = FakeMetadataStore::new().without_index();
+        self
     }
 
     pub fn build(self) -> Engine<FakeAuthenticatorDrivenAdapter, FakeTokenStore, FakeEventBus, FakeMetadataStore>

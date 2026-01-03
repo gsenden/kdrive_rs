@@ -2,4 +2,5 @@
 pub enum CloudSyncState {
     NoMetadata,
     MetadataPresent,
+    NotIndexed,
 }

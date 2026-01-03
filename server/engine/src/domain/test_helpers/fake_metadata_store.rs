@@ -1,20 +1,35 @@
 use crate::ports::driven::metadata_driven_port::MetadataDrivenPort;
 
 pub struct FakeMetadataStore {
-    metadata_exists: bool
+    has_metadata: bool,
+    has_index: bool,
 }
 
 impl FakeMetadataStore {
     pub fn new() -> Self {
-        Self { metadata_exists: true}
+        Self {
+            has_metadata: true,
+            has_index: true
+
+        }
     }
-    pub fn without_metadata() -> Self {
-        Self { metadata_exists: false }
+    pub fn without_metadata(mut self) -> Self {
+        self.has_metadata = false;
+        self
+    }
+
+    pub fn without_index(mut self) -> Self {
+        self.has_index = false;
+        self
     }
 }
 
 impl MetadataDrivenPort for FakeMetadataStore {
     fn has_metadata(&self) -> bool {
-        self.metadata_exists
+        self.has_metadata
+    }
+
+    fn has_index(&self) -> bool {
+        self.has_index
     }
 }
